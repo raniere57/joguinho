@@ -116,7 +116,7 @@ function spawn() {
     .reduce((best, c) => dist(c) > dist(best) ? c : best);
   bubbles.push({
     x, y: H + r, r, emoji, name,
-    vy: H * (0.08 + Math.random() * 0.05), phase: Math.random() * 6.28,
+    vy: H * 0.1, phase: Math.random() * 6.28,
     hue: Math.random() * 360,
   });
 }
@@ -184,7 +184,9 @@ function drawBubble(b, t) {
   ctx.fillStyle = g;
   ctx.beginPath(); ctx.arc(0, 0, b.r, 0, 6.28); ctx.fill();
   ctx.lineWidth = 3; ctx.strokeStyle = `hsla(${b.hue},90%,95%,0.9)`; ctx.stroke();
-  ctx.font = `${b.r * 1.1}px system-ui, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji"`;
+  // fontes de emoji colorido primeiro; system-ui antes fazia alguns PCs desenharem silhueta
+  ctx.font = `${b.r * 1.1}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
+  ctx.fillStyle = '#000';
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(b.emoji, 0, b.r * 0.08);
   ctx.restore();
