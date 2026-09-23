@@ -62,7 +62,7 @@ const PENTATONIC = [523, 587, 659, 784, 880, 1047];
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
 let W = 0, H = 0, R = 0;
-let bubbles = [], particles = [], pops = 0, lastSpawn = 0, audio = null, voice = null;
+let bubbles = [], particles = [], pops = 0, audio = null, voice = null;
 
 function resize() {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -197,7 +197,8 @@ function frame(now) {
   const dt = Math.min((now - prev) / 1000, 0.05), t = now / 1000;
   prev = now;
 
-  if (bubbles.length < MAX_BUBBLES && now - lastSpawn > 1400) { spawn(); lastSpawn = now; }
+  // nasce bolha nova só quando as de baixo já subiram: sem empilhar mesmo com fps baixo
+  if (bubbles.length < MAX_BUBBLES && bubbles.every(b => b.y < H - R * 0.5)) spawn();
 
   ctx.clearRect(0, 0, W, H);
   bubbles = bubbles.filter(b => b.y > -b.r * 1.5);
