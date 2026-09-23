@@ -176,6 +176,66 @@ const sfx = (() => {
       n.connect(bp); env(bp, t, .35, .3, .08);
       n.start(t); n.stop(t + .35);
     },
+    // golinho de mamadeira
+    gulp() {
+      if (!ac) return;
+      const t = ac.currentTime;
+      osc('sine', 260, 520, t, .12, .35);
+      osc('sine', 180, 120, t + .08, .1, .2);
+    },
+    // espuma rangendo sob o dedo
+    squeak() {
+      if (!ac) return;
+      const t = ac.currentTime, f = rand(1300, 1900);
+      osc('sine', f, f * 1.25, t, .09, .07);
+    },
+    // splash de água: ruído grave que abre e fecha
+    splash() {
+      if (!ac) return;
+      const t = ac.currentTime, n = ac.createBufferSource(), lp = ac.createBiquadFilter();
+      n.buffer = noise; n.loop = true;
+      lp.type = 'lowpass';
+      lp.frequency.setValueAtTime(3000, t);
+      lp.frequency.exponentialRampToValueAtTime(300, t + .5);
+      n.connect(lp); env(lp, t, .4, .6, .01);
+      n.start(t); n.stop(t + .65);
+    },
+    // arrotinho engraçado
+    burp() {
+      if (!ac) return;
+      const t = ac.currentTime, o = ac.createOscillator(), lfo = ac.createOscillator(), lg = ac.createGain();
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(140, t);
+      o.frequency.exponentialRampToValueAtTime(90, t + .25);
+      lfo.frequency.value = 30; lg.gain.value = 25;
+      lfo.connect(lg).connect(o.frequency);
+      const lp = ac.createBiquadFilter();
+      lp.type = 'lowpass'; lp.frequency.value = 700;
+      o.connect(lp); env(lp, t, .3, .3, .02);
+      o.start(t); lfo.start(t); o.stop(t + .32); lfo.stop(t + .32);
+    },
+    // caixinha de música: notas = [[freq ou 0, tempos], ...]; devolve duração e como parar
+    musicBox(notes, beat = .5) {
+      if (!ac) return { duration: notes.reduce((a, n) => a + n[1], 0) * beat, stop() {} };
+      const start = ac.currentTime + .1, nodes = [];
+      let t = start;
+      for (const [f, beats] of notes) {
+        if (f) {
+          for (const [mul, vol] of [[1, .13], [2, .035], [3, .012]]) {
+            const o = ac.createOscillator(), g = ac.createGain();
+            o.frequency.value = f * mul;
+            g.gain.setValueAtTime(.0001, t);
+            g.gain.exponentialRampToValueAtTime(vol, t + .01);
+            g.gain.exponentialRampToValueAtTime(.0001, t + 1.4);
+            o.connect(g).connect(out);
+            o.start(t); o.stop(t + 1.5);
+            nodes.push(o);
+          }
+        }
+        t += beats * beat;
+      }
+      return { duration: t - start, stop() { for (const o of nodes) { try { o.stop(); } catch { /* já parou */ } } } };
+    },
     // risadinha "hi hi hi" bem aguda, vinda de onde o ursinho está
     giggle(pan = 0) {
       if (!ac) return;

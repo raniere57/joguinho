@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <!-- só as letras usadas: arquivo de fonte minúsculo -->
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600&text=JoguinhsBlaEcde-&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600&text=JoguinhsBlaEcde-Crb%C3%AA%20&display=swap">
 <title>Joguinhos</title>
 <style>
   @view-transition { navigation: auto; }
@@ -101,7 +101,9 @@
     animation: breathe 1.6s ease-in-out infinite;
   }
   .game.orange .go { background: radial-gradient(ellipse 30% 18% at 36% 24%, rgb(255 255 255 / .9), transparent), radial-gradient(circle at 50% 55%, #ffc56b, #f59a2e); box-shadow: 0 .8vmin 0 #c46f12, 0 1.6vmin 3vmin var(--shadow); }
+  .game.purple .go { background: radial-gradient(ellipse 30% 18% at 36% 24%, rgb(255 255 255 / .9), transparent), radial-gradient(circle at 50% 55%, #c9a4ff, #9a6cf0); box-shadow: 0 .8vmin 0 #6d45c0, 0 1.6vmin 3vmin var(--shadow); }
   .game:nth-child(2) { animation-delay: .12s, .9s; }
+  .game:nth-child(3) { animation-delay: .24s, 1.3s; }
   .game .go svg { width: 55%; fill: #fff; margin-left: 8%; }
   @keyframes breathe { 50% { transform: scale(1.1) rotate(-4deg); } }
   @keyframes pop-in { from { opacity: 0; transform: scale(.5) translateY(6vmin); } }
@@ -113,6 +115,12 @@
   .game .bob.b2 { animation-duration: 2.8s; animation-delay: -.8s; }
   .game .bob.b3 { animation-duration: 2.5s; animation-delay: -1.4s; }
   .game .label { font-size: clamp(.95rem, 4.3vmin, 1.8rem); color: var(--ink); white-space: nowrap; }
+  /* celular em pé: dois cartões por linha */
+  @media (orientation: portrait) {
+    .game { --size: 36vmin; padding: 3vmin 3vmin 2.5vmin; border-radius: 10vmin; }
+    .game .label { font-size: clamp(.8rem, 3.7vmin, 1.8rem); }
+    .game .go { top: -2vmin; bottom: auto; width: calc(var(--size) * .3); }
+  }
 
   @keyframes float { 50% { transform: translateY(-1.6vmin) rotate(-1deg); } }
   @keyframes bob { 50% { transform: translateY(-6%) scale(1.04, .97); } }
@@ -236,6 +244,16 @@
         <g class="bob b2"><text x="170" y="52" font-size="30" text-anchor="middle">❓</text></g>
       </svg>
       <span class="label">Esconde-esconde</span>
+      <span class="go" aria-hidden="true"><svg viewBox="0 0 100 100"><path d="M30 22c0-5 5-8 9-5l38 26c4 3 4 9 0 12L39 83c-4 3-9 0-9-5Z"/></svg></span>
+    </a>
+    <a class="game purple" href="cuidar/" aria-label="Cuidar da bebê">
+      <svg viewBox="0 0 200 170" aria-hidden="true">
+        <ellipse cx="100" cy="158" rx="62" ry="10" fill="#3b2a55" opacity=".12"/>
+        <g class="bob"><text x="100" y="140" font-size="100" text-anchor="middle">👶</text></g>
+        <g class="bob b2"><text x="168" y="70" font-size="36" text-anchor="middle">🍼</text></g>
+        <g class="bob b3"><text x="32" y="58" font-size="28" text-anchor="middle">💖</text></g>
+      </svg>
+      <span class="label">Cuidar da bebê</span>
       <span class="go" aria-hidden="true"><svg viewBox="0 0 100 100"><path d="M30 22c0-5 5-8 9-5l38 26c4 3 4 9 0 12L39 83c-4 3-9 0-9-5Z"/></svg></span>
     </a>
   </nav>

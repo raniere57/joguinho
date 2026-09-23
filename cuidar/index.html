@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#6ec6ff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Joguinhos">
+<link rel="manifest" href="../manifest.json">
+<link rel="icon" href="../icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../icon-180.png">
+<title>Cuidar da bebê</title>
+<link rel="stylesheet" href="../comum/ui.css">
+<style>
+  :root { --play-a: #c9a4ff; --play-b: #9a6cf0; --play-shadow: #6d45c0; }
+  /* barra de cuidados: botões grandes, sem texto */
+  .tools {
+    position: fixed; left: 50%; bottom: max(16px, env(safe-area-inset-bottom)); z-index: 1;
+    transform: translateX(-50%); display: flex; gap: min(4vw, 22px);
+    padding: 10px; border-radius: 999px;
+    background: rgb(255 255 255 / .55);
+    box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / .9), 0 8px 24px rgb(80 40 120 / .2);
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    transition: opacity .3s ease, transform .3s ease;
+  }
+  .tools:not(.on) { opacity: 0; pointer-events: none; transform: translateX(-50%) translateY(30px); }
+  .tools.busy { opacity: .45; }
+  .tools button {
+    position: relative; width: min(17vw, 76px); aspect-ratio: 1; border-radius: 50%;
+    font-size: min(9vw, 40px); line-height: 1;
+    background: radial-gradient(circle at 40% 30%, #fff, #f3eaff);
+    box-shadow: 0 4px 0 #d9c6f5, 0 6px 14px rgb(80 40 120 / .18);
+    transition: transform .12s ease;
+    touch-action: manipulation;
+  }
+  .tools button:active { transform: scale(.9) translateY(3px); box-shadow: 0 1px 0 #d9c6f5; }
+  /* o cuidado que a bebê está pedindo pisca, e a mãozinha aponta */
+  .tools button.wanted { animation: want 1s ease-in-out infinite; background: radial-gradient(circle at 40% 30%, #fff, #ffe08a); box-shadow: 0 4px 0 #f0b93a, 0 0 0 5px rgb(255 210 70 / .55), 0 6px 18px rgb(240 170 40 / .5); }
+  .tools button.wanted.hint::after {
+    content: '👆'; position: absolute; left: 50%; top: 100%; font-size: .8em;
+    transform: translateX(-30%); animation: point .7s ease-in-out infinite alternate;
+  }
+  @keyframes want { 50% { transform: scale(1.12) rotate(-6deg); } }
+  @keyframes point { to { translate: 0 -10px; } }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<button id="home" aria-label="Voltar ao menu (segure)">
+  <svg viewBox="0 0 48 48" aria-hidden="true">
+    <circle class="track" cx="24" cy="24" r="21"/>
+    <circle class="ring" cx="24" cy="24" r="21"/>
+    <path d="M13 24.5 24 15l11 9.5M16 22.5V34h6v-6h4v6h6V22.5"/>
+  </svg>
+</button>
+
+<button id="start" aria-label="Jogar">
+  <span class="play">
+    <svg viewBox="0 0 100 100" aria-hidden="true"><path d="M38 28c0-4 4-6 7-4l30 20c3 2 3 6 0 8L45 72c-3 2-7 0-7-4Z"/></svg>
+  </span>
+</button>
+
+<nav class="tools" aria-label="Cuidados">
+  <button type="button" data-care="fome" aria-label="Mamadeira">🍼</button>
+  <button type="button" data-care="banho" aria-label="Banho">🛁</button>
+  <button type="button" data-care="sono" aria-label="Dormir">🌙</button>
+  <button type="button" data-care="brincar" aria-label="Brincar">🎈</button>
+</nav>
+
+<script src="../comum/base.js"></script>
+<script src="../comum/efeitos.js"></script>
+<script src="../comum/som.js"></script>
+<script src="../comum/medidor.js"></script>
+<script src="../comum/ui.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

@@ -16,7 +16,7 @@ function frame(now) {
 let wakeLock = null;
 const keepAwake = () => navigator.wakeLock?.request('screen').then(l => { wakeLock = l; }).catch(() => {});
 
-// game = { resize, update, render, onTap(x, y), onStart(), onBird? }
+// game = { resize, update, render, onTap(x, y), onStart(), onBird?, onMove?(x, y) }
 function boot(g) {
   game = g;
 
@@ -26,6 +26,11 @@ function boot(g) {
     sfx.resume();
     lastTap = clock;
     game.onTap(e.clientX, e.clientY);
+  });
+  // arrastar o dedo (esfregar, desenhar): só enquanto está encostado na tela
+  canvas.addEventListener('pointermove', e => {
+    if (!started || !game.onMove || (e.pointerType === 'mouse' && !e.buttons)) return;
+    game.onMove(e.clientX, e.clientY);
   });
   // iOS só destrava o áudio no fim do toque, não no começo
   canvas.addEventListener('pointerup', () => sfx.resume());
