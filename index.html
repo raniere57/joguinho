@@ -3,41 +3,213 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#ffe066">
+<meta name="theme-color" content="#5ab8ff">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Joguinhos">
+<meta name="description" content="Joguinhos para crianças pequenas: sem textos, sem anúncios, sem perder.">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- só as letras usadas: arquivo de fonte minúsculo -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600&text=JoguinhsBla&display=swap">
 <title>Joguinhos</title>
 <style>
+  @view-transition { navigation: auto; }
+
+  :root {
+    --sky-top: #5ab8ff; --sky-mid: #aee0ff; --sky-low: #fff1c9;
+    --ink: #3b2a55;
+    --card: rgb(255 255 255 / .55);
+    --card-edge: rgb(255 255 255 / .9);
+    --shadow: rgb(30 80 140 / .25);
+    --font: "Fredoka", ui-rounded, "SF Pro Rounded", system-ui, sans-serif;
+  }
+
   html, body {
-    margin: 0; min-height: 100%;
-    background: linear-gradient(#ffe066, #ffb3d9);
+    margin: 0; min-height: 100%; overflow: hidden;
+    background: linear-gradient(var(--sky-top), var(--sky-mid) 55%, var(--sky-low));
+    font-family: var(--font); color: var(--ink);
     -webkit-user-select: none; user-select: none;
     -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
-    font-family: system-ui, sans-serif;
+    touch-action: manipulation; overscroll-behavior: none;
   }
+  body { height: 100dvh; }
+
+  /* ---------- cenário ---------- */
+  .sun {
+    position: fixed; top: -3vmin; right: -3vmin; width: 27vmin; max-width: 170px; aspect-ratio: 1;
+  }
+  .sun .rays { transform-box: fill-box; transform-origin: center; animation: spin 40s linear infinite; }
+
+  .cloud { position: fixed; left: 0; width: var(--w); animation: drift var(--t) linear infinite; animation-delay: var(--d); opacity: var(--o, 1); }
+  @keyframes drift { from { transform: translateX(-100%); } to { transform: translateX(100vw); } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .hills { position: fixed; left: 0; bottom: 0; width: 100%; height: 26vh; }
+
+  /* ---------- conteúdo ---------- */
   main {
-    min-height: 100vh; display: flex; flex-wrap: wrap;
-    align-content: center; justify-content: center; gap: 6vmin; padding: 6vmin;
+    position: relative; height: 100%;
+    display: grid; grid-template-rows: auto 1fr; justify-items: center;
+    padding: max(18px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
     box-sizing: border-box;
   }
-  a {
-    width: 38vmin; height: 38vmin; border-radius: 9vmin;
-    display: grid; place-items: center; font-size: 20vmin; text-decoration: none;
-    background: #fff; box-shadow: 0 2vmin 0 #0002, 0 4vmin 6vmin #0002;
-    transition: transform .1s;
+
+  h1 {
+    margin: 4vh 0 0; font-weight: 600; letter-spacing: .02em;
+    font-size: clamp(2.6rem, 11vmin, 5.5rem); line-height: 1;
+    display: flex;
   }
-  a:active { transform: scale(.92) translateY(1vmin); }
+  h1 span {
+    color: var(--c);
+    -webkit-text-stroke: .14em #fff; paint-order: stroke fill;
+    text-shadow: 0 .06em 0 rgb(0 0 0 / .12), 0 .12em .2em var(--shadow);
+    animation: hop 2.4s ease-in-out infinite; animation-delay: calc(var(--i) * .12s);
+    display: inline-block;
+  }
+  @keyframes hop { 0%, 60%, 100% { transform: none; } 30% { transform: translateY(-.12em) rotate(-4deg); } }
+
+  .games {
+    align-self: center; margin-bottom: 14vh;
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 6vmin;
+  }
+
+  .game {
+    --size: min(64vmin, 340px);
+    position: relative;
+    width: var(--size); text-decoration: none; color: inherit;
+    display: grid; justify-items: center; gap: 2vmin;
+    padding: 4vmin 4vmin 3vmin; border-radius: 12vmin;
+    background: var(--card);
+    box-shadow: inset 0 0 0 2px var(--card-edge), 0 1.4vmin 0 rgb(255 255 255 / .35), 0 3vmin 6vmin var(--shadow);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    animation: pop-in .6s cubic-bezier(.34, 1.56, .64, 1) both, float 3.2s ease-in-out .6s infinite;
+    transition: transform .12s ease;
+    outline: none;
+  }
+  .game:focus-visible { box-shadow: inset 0 0 0 4px #fff, 0 0 0 6px var(--ink), 0 3vmin 6vmin var(--shadow); }
+  .game .go {
+    position: absolute; right: -2vmin; bottom: -2vmin;
+    width: calc(var(--size) * .26); aspect-ratio: 1; border-radius: 50%;
+    display: grid; place-items: center;
+    background: radial-gradient(ellipse 30% 18% at 36% 24%, rgb(255 255 255 / .9), transparent), radial-gradient(circle at 50% 55%, #ff9ed2, #ff5fa8);
+    box-shadow: 0 .8vmin 0 #d63f86, 0 1.6vmin 3vmin var(--shadow);
+    animation: breathe 1.6s ease-in-out infinite;
+  }
+  .game .go svg { width: 55%; fill: #fff; margin-left: 8%; }
+  @keyframes breathe { 50% { transform: scale(1.1) rotate(-4deg); } }
+  @keyframes pop-in { from { opacity: 0; transform: scale(.5) translateY(6vmin); } }
+  h1 span { animation: drop-in .5s cubic-bezier(.34, 1.56, .64, 1) calc(var(--i) * .05s) both, hop 2.4s ease-in-out calc(.6s + var(--i) * .12s) infinite; }
+  @keyframes drop-in { from { opacity: 0; transform: translateY(-.8em) scale(.6); } }
+  .game:active { animation: none; transform: scale(.93) translateY(1vmin); }
+  .game svg { width: 100%; overflow: visible; }
+  .game .bob { animation: bob 2.2s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+  .game .bob.b2 { animation-duration: 2.8s; animation-delay: -.8s; }
+  .game .bob.b3 { animation-duration: 2.5s; animation-delay: -1.4s; }
+  .game .label { font-size: clamp(1.4rem, 6.5vmin, 2.4rem); color: var(--ink); }
+
+  @keyframes float { 50% { transform: translateY(-1.6vmin) rotate(-1deg); } }
+  @keyframes bob { 50% { transform: translateY(-6%) scale(1.04, .97); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; }
+  }
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="cloud" viewBox="0 0 100 64">
+      <g fill="#d3e9fc" transform="translate(0 3)">
+        <circle cx="22" cy="40" r="16"/><circle cx="42" cy="30" r="22"/><circle cx="64" cy="36" r="18"/><circle cx="80" cy="44" r="13"/><circle cx="50" cy="44" r="16"/>
+      </g>
+      <g fill="#fff">
+        <circle cx="22" cy="40" r="16"/><circle cx="42" cy="30" r="22"/><circle cx="64" cy="36" r="18"/><circle cx="80" cy="44" r="13"/><circle cx="50" cy="44" r="16"/>
+      </g>
+    </symbol>
+    <symbol id="flower" viewBox="-10 -10 20 20">
+      <g fill="#fff"><circle cx="0" cy="-5" r="4"/><circle cx="4.8" cy="-1.5" r="4"/><circle cx="3" cy="4" r="4"/><circle cx="-3" cy="4" r="4"/><circle cx="-4.8" cy="-1.5" r="4"/></g>
+      <circle r="3.2" fill="#ffb020"/>
+    </symbol>
+    <radialGradient id="bubble" cx=".5" cy=".5" r=".5">
+      <stop offset=".62" stop-color="#fff" stop-opacity=".08"/>
+      <stop offset=".9" stop-color="#ff8fd0" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#fff" stop-opacity=".95"/>
+    </radialGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7fd0ff"/><stop offset=".5" stop-color="#ff8fd0"/><stop offset="1" stop-color="#ffe066"/>
+    </linearGradient>
+    <symbol id="bubble-shell" viewBox="-50 -50 100 100" overflow="visible">
+      <circle r="48" fill="url(#bubble)"/>
+      <circle r="45" fill="none" stroke="url(#rim)" stroke-width="4" opacity=".6"/>
+      <circle r="47.5" fill="none" stroke="#fff" stroke-width="1.6"/>
+      <path d="M-34-12a36 36 0 0 1 20-22" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".85"/>
+      <circle cx="-6" cy="-38" r="2.6" fill="#fff"/>
+    </symbol>
+  </defs>
+</svg>
+
+<svg class="sun" viewBox="-100 -100 200 200" aria-hidden="true">
+  <defs><radialGradient id="glow"><stop offset=".45" stop-color="#fff3a0" stop-opacity=".8"/><stop offset="1" stop-color="#fff3a0" stop-opacity="0"/></radialGradient></defs>
+  <circle r="100" fill="url(#glow)"/>
+  <g class="rays" stroke="#ffd23c" stroke-width="9" stroke-linecap="round">
+    <path d="M58 0h24M0 58v24M-58 0h-24M0-58v-24M41 41l17 17M-41 41l-17 17M-41-41l-17-17M41-41l17-17"/>
+  </g>
+  <circle r="46" fill="#ffc727"/>
+  <circle cx="-24" cy="10" r="7" fill="#ff6e6e" opacity=".45"/><circle cx="24" cy="10" r="7" fill="#ff6e6e" opacity=".45"/>
+  <ellipse cx="-14" cy="-6" rx="4" ry="6" fill="#7a4a00"/><ellipse cx="14" cy="-6" rx="4" ry="6" fill="#7a4a00"/>
+  <path d="M-13 8q13 12 26 0" fill="none" stroke="#7a4a00" stroke-width="4" stroke-linecap="round"/>
+</svg>
+
+<svg class="cloud" style="top:14vh;--w:42vmin;--t:70s;--d:-20s" viewBox="0 0 100 64" aria-hidden="true"><use href="#cloud" width="100" height="64"/></svg>
+<svg class="cloud" style="top:30vh;--w:28vmin;--t:95s;--d:-70s;--o:.7" viewBox="0 0 100 64" aria-hidden="true"><use href="#cloud" width="100" height="64"/></svg>
+<svg class="cloud" style="top:46vh;--w:34vmin;--t:80s;--d:-45s;--o:.85" viewBox="0 0 100 64" aria-hidden="true"><use href="#cloud" width="100" height="64"/></svg>
+
+<svg class="hills" viewBox="0 0 1000 260" preserveAspectRatio="xMidYMin slice" aria-hidden="true">
+  <defs>
+    <linearGradient id="h1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b5ec8c"/><stop offset="1" stop-color="#86d063"/></linearGradient>
+    <linearGradient id="h2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7fd35a"/><stop offset="1" stop-color="#4caf3c"/></linearGradient>
+  </defs>
+  <path d="M0 40C150 0 300 0 450 35s330 45 550-5V260H0Z" fill="url(#h1)"/>
+  <path d="M0 110c180-40 330-45 520-10s330 30 480-5V260H0Z" fill="url(#h2)"/>
+  <path d="M0 110c180-40 330-45 520-10s330 30 480-5" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="4"/>
+  <g>
+    <use href="#flower" x="80" y="140" width="22" height="22"/><use href="#flower" x="210" y="190" width="18" height="18"/>
+    <use href="#flower" x="330" y="130" width="20" height="20"/><use href="#flower" x="440" y="200" width="24" height="24"/>
+    <use href="#flower" x="560" y="140" width="18" height="18"/><use href="#flower" x="660" y="185" width="22" height="22"/>
+    <use href="#flower" x="780" y="135" width="20" height="20"/><use href="#flower" x="880" y="195" width="18" height="18"/>
+    <use href="#flower" x="140" y="215" width="16" height="16"/><use href="#flower" x="270" y="150" width="14" height="14"/>
+    <use href="#flower" x="380" y="225" width="16" height="16"/><use href="#flower" x="500" y="165" width="14" height="14"/>
+    <use href="#flower" x="610" y="220" width="16" height="16"/><use href="#flower" x="720" y="160" width="14" height="14"/>
+    <use href="#flower" x="830" y="225" width="16" height="16"/><use href="#flower" x="940" y="150" width="14" height="14"/>
+  </g>
+</svg>
+
 <main>
-  <!-- cada jogo novo = uma pasta + um link aqui -->
-  <a href="bolhinhas/" aria-label="Bolhinhas">🫧</a>
+  <h1 aria-label="Joguinhos">
+    <span style="--c:#ff5fa8;--i:0">J</span><span style="--c:#ff8a3d;--i:1">o</span><span style="--c:#ffc930;--i:2">g</span><span style="--c:#5ad16e;--i:3">u</span><span style="--c:#3fa9ff;--i:4">i</span><span style="--c:#8a6cff;--i:5">n</span><span style="--c:#ff5fa8;--i:6">h</span><span style="--c:#ff8a3d;--i:7">o</span><span style="--c:#3fa9ff;--i:8">s</span>
+  </h1>
+
+  <nav class="games" aria-label="Jogos">
+    <!-- cada jogo novo = uma pasta + um cartão aqui -->
+    <a class="game" href="bolhinhas/" aria-label="Bolhinhas">
+      <svg viewBox="0 0 200 170" aria-hidden="true">
+        <g class="bob b2"><text x="155" y="54" font-size="32" text-anchor="middle">🐸</text><use href="#bubble-shell" style="filter:hue-rotate(160deg)" x="120" y="8" width="70" height="70"/></g>
+        <g class="bob b3"><text x="36" y="55" font-size="26" text-anchor="middle">🐱</text><use href="#bubble-shell" style="filter:hue-rotate(250deg)" x="8" y="18" width="56" height="56"/></g>
+        <g class="bob"><text x="100" y="120" font-size="62" text-anchor="middle">🐶</text><use href="#bubble-shell" x="40" y="40" width="120" height="120"/></g>
+      </svg>
+      <span class="label">Bolhinhas</span>
+      <span class="go" aria-hidden="true"><svg viewBox="0 0 100 100"><path d="M30 22c0-5 5-8 9-5l38 26c4 3 4 9 0 12L39 83c-4 3-9 0-9-5Z"/></svg></span>
+    </a>
+  </nav>
 </main>
+
+<script>
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
 </body>
 </html>

@@ -1,0 +1,76 @@
+@view-transition { navigation: auto; }
+
+:root {
+  --sky: #6ec6ff;
+  --glass: rgb(255 255 255 / 0.28);
+  --glass-edge: rgb(255 255 255 / 0.7);
+  --ink: #2b6cb0;
+  --play-a: #ff9ed2;
+  --play-b: #ff5fa8;
+  --play-shadow: #d63f86;
+}
+
+html, body {
+  margin: 0; height: 100%; overflow: hidden;
+  background: var(--sky);
+  touch-action: none; overscroll-behavior: none;
+  -webkit-user-select: none; user-select: none;
+  -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
+}
+
+canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+
+/* ---------- botão jogar ---------- */
+#start {
+  position: fixed; inset: 0; display: grid; place-items: center;
+  transition: opacity .35s ease, transform .35s ease;
+}
+#start.gone { opacity: 0; transform: scale(1.4); pointer-events: none; }
+
+.play {
+  width: min(46vmin, 260px); aspect-ratio: 1; border-radius: 50%;
+  display: grid; place-items: center;
+  background:
+    radial-gradient(ellipse 16% 10% at 34% 22%, rgb(255 255 255 / .95), transparent),
+    radial-gradient(circle at 38% 32%, rgb(255 255 255 / .45), transparent 42%),
+    radial-gradient(circle at 50% 55%, var(--play-a), var(--play-b));
+  box-shadow:
+    inset 0 -1.2vmin 0 rgb(0 0 0 / .08),
+    0 1.6vmin 0 var(--play-shadow),
+    0 3vmin 5vmin rgb(20 60 120 / .3);
+  animation: breathe 1.6s ease-in-out infinite;
+}
+.play svg { width: 62%; fill: #fff; filter: drop-shadow(0 .6vmin 0 rgb(0 0 0 / .12)); margin-left: 6%; }
+#start:active .play { animation: none; transform: scale(.92) translateY(1vmin); }
+
+@keyframes breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.07) rotate(-2deg); }
+}
+
+/* ---------- botão casinha (segurar 1s) ---------- */
+#home {
+  position: fixed; z-index: 2;
+  top: max(14px, env(safe-area-inset-top)); left: max(14px, env(safe-area-inset-left));
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--glass);
+  box-shadow: inset 0 0 0 1.5px var(--glass-edge), 0 4px 14px rgb(20 60 120 / .15);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  transition: transform .2s ease;
+}
+#home svg { width: 100%; height: 100%; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+#home path { stroke: #fff; stroke-width: 3; }
+#home .track { stroke: transparent; stroke-width: 3; }
+#home .ring {
+  stroke: #fff; stroke-width: 3.5;
+  stroke-dasharray: 132; stroke-dashoffset: 132;
+  transform: rotate(-90deg); transform-origin: center;
+}
+#home.holding { transform: scale(1.25); }
+#home.holding .ring { transition: stroke-dashoffset 1s linear; stroke-dashoffset: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .play { animation: none; }
+}
