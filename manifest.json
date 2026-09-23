@@ -1,10 +1,11 @@
 {
-  "name": "Bolhinhas",
-  "short_name": "Bolhinhas",
+  "name": "Joguinhos",
+  "short_name": "Joguinhos",
   "start_url": ".",
+  "scope": ".",
   "display": "fullscreen",
   "orientation": "any",
-  "background_color": "#7ec8ff",
-  "theme_color": "#7ec8ff",
+  "background_color": "#ffe066",
+  "theme_color": "#ffe066",
   "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
 }
