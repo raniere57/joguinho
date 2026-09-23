@@ -64,14 +64,24 @@ function boot(g) {
 
   // segurar 1s pra voltar ao menu: toque rápido da criança não sai do jogo
   const home = document.getElementById('home');
-  let holdTimer;
-  home.addEventListener('pointerdown', () => {
+  const tip = document.createElement('div');
+  tip.className = 'home-tip'; tip.textContent = 'Segure para voltar'; tip.setAttribute('aria-hidden', 'true');
+  document.body.append(tip);
+  let holdTimer, tipTimer;
+  home.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    home.setPointerCapture?.(e.pointerId);   // dedo escorregando um pouco não cancela
     home.classList.add('holding');
     holdTimer = setTimeout(() => { location.href = '../'; }, 1000);
   });
-  for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) {
-    home.addEventListener(ev, () => { clearTimeout(holdTimer); home.classList.remove('holding'); });
-  }
+  const release = () => { clearTimeout(holdTimer); home.classList.remove('holding'); };
+  home.addEventListener('pointercancel', release);
+  home.addEventListener('pointerup', () => {
+    release();
+    tip.classList.add('show');
+    clearTimeout(tipTimer);
+    tipTimer = setTimeout(() => tip.classList.remove('show'), 2200);
+  });
 
   game.resize();
   measureMeter();
