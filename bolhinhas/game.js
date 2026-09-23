@@ -244,11 +244,30 @@ const sfx = (() => {
     env(o, t, peak, dur);
     o.start(t); o.stop(t + dur + .02);
   }
+  // iPhone com a chave do silencioso ligada corta o Web Audio. Um <audio> de mídia tocando
+  // silêncio em loop muda a sessão para "reprodução", e aí o Web Audio passa a sair também.
+  let keepAlive = null;
+  function silentLoop() {
+    const rate = 8000, n = rate / 2, buf = new ArrayBuffer(44 + n), v = new DataView(buf);
+    const str = (o, txt) => [...txt].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+    str(0, 'RIFF'); v.setUint32(4, 36 + n, true); str(8, 'WAVE'); str(12, 'fmt ');
+    v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, rate, true); v.setUint32(28, rate, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true);
+    str(36, 'data'); v.setUint32(40, n, true);
+    for (let i = 0; i < n; i++) v.setUint8(44 + i, 128);
+    const a = new Audio(URL.createObjectURL(new Blob([buf], { type: 'audio/wav' })));
+    a.loop = true;
+    a.setAttribute('playsinline', '');
+    a.setAttribute('x-webkit-airplay', 'deny');
+    return a;
+  }
   const s = {
     init() {
-      // iPhone: sem isso o som some quando a chave lateral está no silencioso
-      if (navigator.audioSession) navigator.audioSession.type = 'playback';
+      keepAlive = silentLoop();
+      keepAlive.play().catch(() => {});
+      try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch { /* iOS antigo */ }
       ac = new (window.AudioContext || window.webkitAudioContext)();
+      ac.resume();
       const comp = ac.createDynamicsCompressor();
       out = ac.createGain(); out.gain.value = .9;
       out.connect(comp).connect(ac.destination);
@@ -324,8 +343,11 @@ const sfx = (() => {
         o.start(at); o.stop(at + 2.3);
       }
     },
-    resume() { if (ac && ac.state !== 'running') ac.resume(); },
-    suspend() { ac?.suspend(); },
+    resume() {
+      if (keepAlive?.paused) keepAlive.play().catch(() => {});
+      if (ac && ac.state !== 'running') ac.resume();
+    },
+    suspend() { keepAlive?.pause(); ac?.suspend(); },
     pop() {
       if (!ac) return;
       const t = ac.currentTime, f = rand(330, 480);

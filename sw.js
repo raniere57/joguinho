@@ -1,5 +1,5 @@
 // rede primeiro (sempre a versão nova quando tem internet), cache quando está offline
-const CACHE = 'joguinhos-v2';
+const CACHE = 'joguinhos-v3';
 const CORE = ['./', 'index.html', 'manifest.json', 'icon.svg', 'bolhinhas/', 'bolhinhas/index.html', 'bolhinhas/style.css', 'bolhinhas/game.js'];
 
 self.addEventListener('install', e => {
