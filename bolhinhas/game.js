@@ -246,6 +246,8 @@ const sfx = (() => {
   }
   const s = {
     init() {
+      // iPhone: sem isso o som some quando a chave lateral está no silencioso
+      if (navigator.audioSession) navigator.audioSession.type = 'playback';
       ac = new (window.AudioContext || window.webkitAudioContext)();
       const comp = ac.createDynamicsCompressor();
       out = ac.createGain(); out.gain.value = .9;
@@ -715,6 +717,8 @@ canvas.addEventListener('pointerdown', e => {
   lastTap = clock;
   hit(e.clientX, e.clientY);
 });
+// iOS só destrava o áudio no fim do toque, não no começo
+canvas.addEventListener('pointerup', () => sfx.resume());
 addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('gesturestart', e => e.preventDefault());
 let resizeTimer;
@@ -743,7 +747,8 @@ startBtn.addEventListener('click', () => {
   lastTap = clock;
   rings.push({ x: W / 2, y: H / 2, r: Math.min(W, H) * .23, t: 0 });
   burst(W / 2, H / 2, Math.min(W, H) * .2, 330, 30);
-  document.documentElement.requestFullscreen?.().catch(() => {});
+  const root = document.documentElement;   // iPad aceita; iPhone só em tela cheia pela Tela de Início
+  (root.requestFullscreen || root.webkitRequestFullscreen)?.call(root)?.catch?.(() => {});
   keepAwake();
   say('vamos', 'Vamos estourar as bolhinhas?');
 });
