@@ -1,14 +1,25 @@
 'use strict';
 
 // ---------- conteúdo ----------
+// [emoji, arquivo em voz/, texto (usado só se o áudio falhar)]
 const ANIMALS = [
-  ['🐶', 'Cachorro! Au au!'], ['🐱', 'Gato! Miau!'], ['🐮', 'Vaca! Muuu!'],
-  ['🐷', 'Porquinho! Óinc óinc!'], ['🐸', 'Sapo! Croac!'], ['🦁', 'Leão! Roar!'],
-  ['🐵', 'Macaco! U u a a!'], ['🐰', 'Coelho!'], ['🐔', 'Galinha! Có có có!'],
-  ['🦆', 'Pato! Quá quá!'], ['🐘', 'Elefante!'], ['🐴', 'Cavalo! Iirrí!'],
-  ['🐑', 'Ovelha! Méé!'], ['🐟', 'Peixinho!'], ['🐻', 'Urso!'],
-  ['🐯', 'Tigre!'], ['🦒', 'Girafa!'], ['🐢', 'Tartaruga!'],
+  ['🐶', 'cachorro', 'O cachorrinho! Au, au!'], ['🐱', 'gato', 'O gatinho! Miau!'],
+  ['🐮', 'vaca', 'A vaquinha! Muuu!'], ['🐷', 'porco', 'O porquinho! Óinc, óinc!'],
+  ['🐸', 'sapo', 'O sapinho! Croac, croac!'], ['🦁', 'leao', 'O leão! Roaaar!'],
+  ['🐵', 'macaco', 'O macaquinho! Uh, uh, ah, ah!'], ['🐰', 'coelho', 'O coelhinho! Pula, pula!'],
+  ['🐔', 'galinha', 'A galinha! Có, có, có!'], ['🦆', 'pato', 'O patinho! Quá, quá!'],
+  ['🐘', 'elefante', 'O elefante! Que grandão!'], ['🐴', 'cavalo', 'O cavalinho! Iiirrí!'],
+  ['🐑', 'ovelha', 'A ovelhinha! Méé!'], ['🐟', 'peixe', 'O peixinho! Glub, glub!'],
+  ['🐻', 'urso', 'O ursinho! Que fofinho!'], ['🐯', 'tigre', 'O tigre! Roaaar!'],
+  ['🦒', 'girafa', 'A girafa! Que pescoção!'], ['🐢', 'tartaruga', 'A tartaruga! Devagarinho!'],
 ];
+const LINES = ['vamos', 'muito-bem', ...ANIMALS.map(a => a[1])];
+// baixa as falas já no carregamento; decodifica quando o áudio for liberado pelo toque
+const voiceFiles = new Map(LINES.map(n => [n, fetch(`voz/${n}.mp3`).then(r => {
+  if (!r.ok) throw new Error(n);
+  return r.arrayBuffer();
+})]));
+voiceFiles.forEach(p => p.catch(() => {}));
 
 // ---------- ajustes ----------
 const MAX_BUBBLES = 6;
@@ -198,14 +209,16 @@ function emojiSprite(e) {
 }
 
 function resize() {
-  const oldR = R;
+  const oldR = R, oldW = W, oldH = H;
   DPR = Math.min(devicePixelRatio || 1, 2);
   W = innerWidth; H = innerHeight;
   canvas.width = Math.round(W * DPR); canvas.height = Math.round(H * DPR);
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   R = Math.min(Math.min(W, H) * .15, 120);
   SPR = R * 1.15;
-  if (oldR) for (const b of bubbles) b.r *= R / oldR;
+  if (oldR) for (const b of bubbles) {
+    b.r *= R / oldR; b.sway *= R / oldR; b.baseX *= W / oldW; b.y *= H / oldH;
+  }
   buildScene();
   bubbleSprites = Array.from({ length: HUES }, (_, i) => buildBubble(i * 360 / HUES));
   emojiSprites.clear();
@@ -214,7 +227,8 @@ function resize() {
 
 // ---------- som ----------
 const sfx = (() => {
-  let ac, out, noise;
+  let ac, out, noise, voiceOut, ambientOut, voiceSrc = null, voiceEnd = 0, voiceTurn = 0;
+  const decoded = new Map();
   function env(node, t, peak, dur, attack = .005) {
     const g = ac.createGain();
     g.gain.setValueAtTime(.0001, t);
@@ -239,6 +253,74 @@ const sfx = (() => {
       noise = ac.createBuffer(1, ac.sampleRate * .1, ac.sampleRate);
       const d = noise.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      voiceOut = ac.createGain(); voiceOut.gain.value = 1.1; voiceOut.connect(comp);
+      ambientOut = ac.createGain(); ambientOut.gain.value = .0001; ambientOut.connect(out);
+    },
+    speak(line, queue) {
+      if (!ac || !voiceFiles.has(line)) return Promise.reject(new Error('sem áudio'));
+      if (!decoded.has(line)) decoded.set(line, voiceFiles.get(line).then(b => ac.decodeAudioData(b)));
+      const turn = queue ? voiceTurn : ++voiceTurn;
+      return decoded.get(line).then(buf => {
+        if (turn !== voiceTurn) return;   // outra fala mais nova já pediu a vez
+        const t = ac.currentTime;
+        if (!queue) { try { voiceSrc?.stop(); } catch { /* já tinha parado */ } }
+        const at = queue ? Math.max(t, voiceEnd) : t;
+        voiceSrc = ac.createBufferSource();
+        voiceSrc.buffer = buf; voiceSrc.connect(voiceOut); voiceSrc.start(at);
+        voiceEnd = at + buf.duration;
+      });
+    },
+    // brisa: ruído bem grave e baixinho que respira devagar
+    startAmbient() {
+      const wind = ac.createBufferSource(), lp = ac.createBiquadFilter(), g = ac.createGain();
+      const len = ac.sampleRate * 6, buf = ac.createBuffer(1, len, ac.sampleRate), d = buf.getChannelData(0);
+      let last = 0;
+      for (let i = 0; i < len; i++) { last = (last + .02 * (Math.random() * 2 - 1)) / 1.02; d[i] = last * 3.5; }
+      const fade = ac.sampleRate * .3;   // pontas suaves: sem "tec" quando o loop recomeça
+      for (let i = 0; i < fade; i++) { d[i] *= i / fade; d[len - 1 - i] *= i / fade; }
+      wind.buffer = buf; wind.loop = true;
+      lp.type = 'lowpass'; lp.frequency.value = 420;
+      g.gain.value = .05;
+      const lfo = ac.createOscillator(), depth = ac.createGain();
+      lfo.frequency.value = .07; depth.gain.value = .035;
+      lfo.connect(depth).connect(g.gain);
+      wind.connect(lp).connect(g).connect(ambientOut);
+      wind.start(); lfo.start();
+      ambientOut.gain.setTargetAtTime(1, ac.currentTime, 1.5);   // entra devagar
+    },
+    // passarinho: 2 a 4 piados curtos, do lado da tela onde ele está
+    chirp(pan = rand(-.8, .8)) {
+      if (!ac) return;
+      const p = ac.createStereoPanner ? ac.createStereoPanner() : ac.createGain();
+      if (p.pan) p.pan.value = pan;
+      p.connect(ambientOut);
+      const base = rand(2600, 3800), n = 2 + (Math.random() * 3 | 0);
+      let t = ac.currentTime + .05;
+      for (let i = 0; i < n; i++) {
+        const o = ac.createOscillator(), g = ac.createGain(), up = Math.random() < .5;
+        o.frequency.setValueAtTime(base * (up ? .8 : 1.15), t);
+        o.frequency.exponentialRampToValueAtTime(base * (up ? 1.2 : .85), t + .07);
+        g.gain.setValueAtTime(.0001, t);
+        g.gain.exponentialRampToValueAtTime(.05, t + .012);
+        g.gain.exponentialRampToValueAtTime(.0001, t + .09);
+        o.connect(g).connect(p);
+        o.start(t); o.stop(t + .1);
+        t += rand(.11, .17);
+      }
+    },
+    // sininho de vento: 2 ou 3 notas agudas e bem baixinhas
+    chime() {
+      if (!ac) return;
+      const t = ac.currentTime;
+      for (let i = 0, n = 2 + (Math.random() * 2 | 0); i < n; i++) {
+        const o = ac.createOscillator(), g = ac.createGain(), at = t + i * rand(.25, .45);
+        o.frequency.value = pick(PENTATONIC) * 2;
+        g.gain.setValueAtTime(.0001, at);
+        g.gain.exponentialRampToValueAtTime(.018, at + .01);
+        g.gain.exponentialRampToValueAtTime(.0001, at + 2.2);
+        o.connect(g).connect(ambientOut);
+        o.start(at); o.stop(at + 2.3);
+      }
     },
     resume() { if (ac && ac.state !== 'running') ac.resume(); },
     suspend() { ac?.suspend(); },
@@ -265,12 +347,17 @@ const sfx = (() => {
   return s;
 })();
 
+function say(line, text, queue = false) {
+  sfx.speak(line, queue).catch(() => sayRobot(text, queue));
+}
+
+// plano B: voz do sistema, se o áudio gravado não carregar
 let voice = null;
 function pickVoice() {
   const vs = speechSynthesis.getVoices();
   voice = vs.find(v => v.lang === 'pt-BR') || vs.find(v => v.lang.startsWith('pt')) || null;
 }
-function say(text, queue = false) {
+function sayRobot(text, queue) {
   if (!('speechSynthesis' in window)) return;
   if (!queue) speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
@@ -283,13 +370,13 @@ if ('speechSynthesis' in window) { pickVoice(); speechSynthesis.onvoiceschanged 
 // ---------- jogo ----------
 function spawn() {
   const pool = ANIMALS.filter(([e]) => !bubbles.some(b => b.emoji === e));
-  const [emoji, name] = pick(pool);
+  const [emoji, voz, name] = pick(pool);
   const r = R * rand(.9, 1.1), sway = R * .2;
   const lo = r + sway, hi = W - r - sway;
   // sorteia posições e fica com a mais longe das bolhas que já estão subindo
   const gap = x => Math.min(Infinity, ...bubbles.map(b => Math.hypot(x - b.x, H - b.y)));
   const x = hi <= lo ? W / 2 : Array.from({ length: 6 }, () => rand(lo, hi)).reduce((a, c) => gap(c) > gap(a) ? c : a);
-  bubbles.push({ baseX: x, x, y: H + r, r, sway, hue: Math.random() * HUES | 0, phase: rand(0, TAU), emoji, name });
+  bubbles.push({ baseX: x, x, y: H + r, r, sway, hue: Math.random() * HUES | 0, phase: rand(0, TAU), emoji, voz, name });
 }
 
 function addParticle(p) {
@@ -317,7 +404,7 @@ function popBubble(b) {
   burst(b.x, b.y, b.r, b.hue * 360 / HUES, 22);
   freed.push({ x: Math.min(Math.max(b.x, b.r * 1.3), W - b.r * 1.3), y: b.y, r: b.r, emoji: b.emoji, t: 0 });
   flyers.push({ x0: b.x, y0: b.y, t: 0, dir: b.x < W / 2 ? 1 : -1 });
-  say(b.name);
+  say(b.voz, b.name);
 }
 
 function tapSky(x, y) {
@@ -330,7 +417,7 @@ function celebrate() {
   sfx.fanfare();
   navigator.vibrate?.([30, 60, 30]);
   rainbowAt = clock;
-  say('Muito bem!', true);
+  say('muito-bem', 'Muito bem! Parabéns!', true);
 
   for (let i = 0; i < 140; i++) {
     confetti.push({
@@ -346,8 +433,65 @@ function hit(x, y) {
     const d = Math.hypot(x - b.x, y - b.y);
     if (d < b.r * HIT_SLOP && d < bestD) { best = i; bestD = d; }
   });
+  const bird = birds.find(b => Math.hypot(x - b.x, y - b.y) < b.s * 2.4);
+  if (best < 0 && bird) {
+    sfx.chirp(bird.x / W * 2 - 1);
+    burst(bird.x, bird.y, bird.s, 50, 8);
+    return;
+  }
   if (best < 0) return tapSky(x, y);
   popBubble(bubbles.splice(best, 1)[0]);
+}
+
+// ---------- vida no céu: passarinhos, piados e sininhos de vez em quando ----------
+const BIRD_COLORS = [['#4fb4ff', '#2b8ae0'], ['#ff8fb8', '#ee5c96'], ['#ffd23f', '#eea600']];
+let birds = [];
+
+function scheduleAmbient() {
+  setTimeout(() => {
+    if (!document.hidden) {
+      const r = Math.random();
+      if (r < .45) spawnBird();
+      else if (r < .8) sfx.chirp();
+      else sfx.chime();
+    }
+    scheduleAmbient();
+  }, rand(4000, 9000));
+}
+
+function spawnBird() {
+  const dir = Math.random() < .5 ? 1 : -1, s = R * rand(.3, .38), [body, wing] = pick(BIRD_COLORS);
+  birds.push({ x: dir > 0 ? -s * 2 : W + s * 2, y: H * rand(.14, .45), dir, s, body, wing,
+    speed: W * rand(.08, .12), phase: rand(0, TAU), sang: false });
+}
+
+function updateBirds(dt) {
+  for (const b of birds) {
+    b.x += b.dir * b.speed * dt;
+    const into = b.dir > 0 ? b.x / W : 1 - b.x / W;
+    if (!b.sang && into > .3) { b.sang = true; sfx.chirp(b.x / W * 2 - 1); }
+  }
+  birds = birds.filter(b => b.x > -b.s * 3 && b.x < W + b.s * 3);
+}
+
+function drawBird(b, t) {
+  const s = b.s, flap = Math.sin(t * 10 + b.phase);
+  ctx.save();
+  ctx.translate(b.x, b.y + Math.sin(t * 3 + b.phase) * s * .4);
+  ctx.scale(b.dir, 1);
+  ctx.fillStyle = b.body;
+  ctx.beginPath(); ctx.moveTo(-s * .7, -s * .1); ctx.lineTo(-s * 1.45, -s * .55); ctx.lineTo(-s * 1.35, s * .25); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(0, 0, s, s * .8, 0, 0, TAU); ctx.fill();
+  ctx.fillStyle = 'rgb(255 255 255 / .55)';
+  ctx.beginPath(); ctx.ellipse(s * .15, s * .32, s * .55, s * .34, 0, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#ffa41b';
+  ctx.beginPath(); ctx.moveTo(s * .88, -s * .12); ctx.lineTo(s * 1.35, s * .04); ctx.lineTo(s * .88, s * .22); ctx.fill();
+  ctx.fillStyle = '#2b2140'; circle(ctx, s * .45, -s * .24, s * .13); ctx.fill();
+  ctx.fillStyle = '#fff'; circle(ctx, s * .5, -s * .29, s * .05); ctx.fill();
+  ctx.fillStyle = b.wing;
+  ctx.translate(-s * .1, -s * .1); ctx.rotate(-.35 - flap * .8);
+  ctx.beginPath(); ctx.ellipse(-s * .4, 0, s * .62, s * .3, 0, 0, TAU); ctx.fill();
+  ctx.restore();
 }
 
 // ---------- medidor de estrelas ----------
@@ -380,9 +524,10 @@ function updateFlyers(dt) {
     });
   });
   // medidor cheio fica brilhando um pouco antes de esvaziar
-  if (lit === CELEBRATE_EVERY && (clock - fullAt > 1.6 || flyers[0]?.t >= FLY_TIME)) emptyMeter();
+  if (lit >= CELEBRATE_EVERY && clock - fullAt > 1.6) emptyMeter();
   while (flyers.length && flyers[0].t >= FLY_TIME) {
     flyers.shift();
+    if (lit >= CELEBRATE_EVERY) emptyMeter();
     sfx.bell(523.25 * 2 ** (MAJOR[lit] / 12));
     slotBorn[lit] = clock;
     lit++;
@@ -398,7 +543,7 @@ function drawMeter() {
   for (let i = 0; i < CELEBRATE_EVERY; i++) {
     const { x, y, gap } = slotPos(i);
     if (i < lit) {
-      const wave = lit === CELEBRATE_EVERY ? 1 + .25 * Math.sin(clock * 12 - i * .7) : 1;
+      const wave = lit >= CELEBRATE_EVERY ? 1 + .25 * Math.sin(clock * 12 - i * .7) : 1;
       const k = easeOutBack(Math.min((clock - slotBorn[i]) / .3, 1)), r = gap * .5 * k * wave;
       ctx.fillStyle = '#e08c00'; star(ctx, x, y + 1.5, r, -Math.PI / 2);
       ctx.fillStyle = '#ffd23f'; star(ctx, x, y, r, -Math.PI / 2);
@@ -428,6 +573,7 @@ function update(dt, t) {
   for (const r of rings) r.t += dt;
   rings = rings.filter(r => r.t < RING_LIFE);
   updateFlyers(dt);
+  updateBirds(dt);
   for (const f of freed) f.t += dt;
   freed = freed.filter(f => f.t < FREED_LIFE);
 
@@ -508,6 +654,7 @@ function render(t) {
     ctx.drawImage(c.sprite, c.x, c.y, c.sprite.w, c.sprite.h);
   }
   ctx.globalAlpha = 1;
+  for (const b of birds) drawBird(b, t);
 
   const rs = sc.rays.w;
   ctx.save();
@@ -570,13 +717,17 @@ canvas.addEventListener('pointerdown', e => {
 });
 addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('gesturestart', e => e.preventDefault());
-addEventListener('resize', resize);
+let resizeTimer;
+addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => { resize(); measureMeter(); }, 120);
+});
 
 let wakeLock = null;
 const keepAwake = () => navigator.wakeLock?.request('screen').then(l => { wakeLock = l; }).catch(() => {});
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { sfx.suspend(); if ('speechSynthesis' in window) speechSynthesis.cancel(); }
-  else if (started) keepAwake();
+  else if (started) { sfx.resume(); keepAwake(); }
 });
 
 const startBtn = document.getElementById('start');
@@ -586,13 +737,15 @@ startBtn.addEventListener('click', () => {
   startBtn.classList.add('gone');
   setTimeout(() => startBtn.remove(), 400);
   sfx.init();
+  sfx.startAmbient();
+  scheduleAmbient();
   sfx.pop();
   lastTap = clock;
   rings.push({ x: W / 2, y: H / 2, r: Math.min(W, H) * .23, t: 0 });
   burst(W / 2, H / 2, Math.min(W, H) * .2, 330, 30);
   document.documentElement.requestFullscreen?.().catch(() => {});
   keepAwake();
-  say('Vamos estourar as bolhas!');
+  say('vamos', 'Vamos estourar as bolhinhas?');
 });
 
 // segurar 1s pra voltar ao menu: toque rápido da criança não sai do jogo
@@ -608,6 +761,5 @@ for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) {
 
 resize();
 measureMeter();
-addEventListener('resize', measureMeter);
 requestAnimationFrame(frame);
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('../sw.js').catch(() => {});

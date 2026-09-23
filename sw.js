@@ -1,5 +1,5 @@
 // rede primeiro (sempre a versão nova quando tem internet), cache quando está offline
-const CACHE = 'joguinhos-v1';
+const CACHE = 'joguinhos-v2';
 const CORE = ['./', 'index.html', 'manifest.json', 'icon.svg', 'bolhinhas/', 'bolhinhas/index.html', 'bolhinhas/style.css', 'bolhinhas/game.js'];
 
 self.addEventListener('install', e => {
@@ -15,7 +15,10 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
-  e.respondWith(fetch(e.request).then(res => {
+  // no-cache: revalida com o servidor (o cache HTTP do navegador não segura versão velha)
+  const sameOrigin = new URL(e.request.url).origin === location.origin;
+  const net = sameOrigin ? fetch(e.request.url, { cache: 'no-cache' }) : fetch(e.request);
+  e.respondWith(net.then(res => {
     if (res.ok || res.type === 'opaque') {
       const copy = res.clone();
       caches.open(CACHE).then(c => c.put(e.request, copy));
