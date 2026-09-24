@@ -47,6 +47,7 @@ const sfx = (() => {
     return a;
   }
   const s = {
+    get ctx() { return ac; },   // pra quem precisa ouvir (microfone do bolo)
     init() {
       keepAlive = silentLoop();
       keepAlive.play().catch(() => {});

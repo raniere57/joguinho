@@ -24,6 +24,9 @@ const LAYERS = 3, TOPPING_GOAL = 10, MAX_TOPPINGS = 30, MAX_CANDLES = 5, BITES =
 const HINT_AFTER = 6;         // segundos parada até a mãozinha aparecer
 const REPEAT_AFTER = 13;      // ...e até a tia repetir o que fazer
 const CANDLE_WAIT = 4;        // sem pôr mais velinhas por esse tempo = hora de acender
+const BLOW_LEVEL = .12;       // volume do microfone que conta como sopro
+const BLOW_HOLD = .18;        // ...sustentado por esse tempo (fala e barulho curto não apagam)
+const MIC_GRACE = 1.5;        // não escuta enquanto a tia fala "assopra"
 const STAGE_LINE = {
   massa: ['massa', 'Escolha o sabor do bolo!'],
   cobertura: ['cobertura', 'Agora, a cobertura! Qual cor?'],
@@ -39,6 +42,7 @@ let wall = null, table = null, tableY = 0;
 let stage = 'intro', stageAt = 0, saidAt = 0, pending = null;
 const cake = { x: 0, base: 0, w: 0, lh: 0, layers: [], icing: null, icingAt: 0, drips: [], toppings: [], candles: [], eaten: 0, baked: null, bakedG: null };
 let friends = [], smoke = [], notes = [];
+let wind = 0, blowTime = 0, lastBlowOut = 0;
 let dark = 0, song = null, songEndsAt = 0, pickedTopping = TOPPINGS[0], lastPlace = 0, lastCandleAt = 0, frameDt = 0;
 const tray = document.querySelector('.tray');
 
@@ -113,6 +117,7 @@ function later(s, delay) { pending = { stage: s, at: clock + delay }; setTray([]
 
 function goTo(s) {
   stage = s; stageAt = saidAt = clock;
+  if (s === 'assoprar') mic.start(); else mic.stop();
   if (STAGE_LINE[s]) say(...STAGE_LINE[s], true);
   if (['cobertura', 'enfeite', 'velas', 'acender', 'festa'].includes(s)) {
     launchStar(cake.x, cake.base - cake.lh * LAYERS);
@@ -216,15 +221,67 @@ function updateSinging() {
 }
 
 function blowAt(x, y) {
-  let hit = false;
-  for (const c of cake.candles) {
-    if (c.out || Math.hypot(x - c.fx, y - c.fy) > cake.w * .2) continue;
-    c.out = true; hit = true;
+  putOut(cake.candles.filter(c => !c.out && Math.hypot(x - c.fx, y - c.fy) < cake.w * .2));
+}
+
+function putOut(list) {
+  if (stage !== 'assoprar' || !list.length) return;
+  for (const c of list) {
+    c.out = true;
     for (let i = 0; i < 6; i++) smoke.push({ x: c.fx, y: c.fy, t: -i * .08, vx: rand(-15, 15), r: cake.w * rand(.03, .05) });
   }
-  if (!hit) return;
   sfx.whoosh();
   if (cake.candles.every(c => c.out)) goTo('festa');
+}
+
+// microfone: assoprar de verdade apaga as velinhas (tocar nas chamas continua valendo).
+// Só fica ligado durante o "assoprar": no iPhone o microfone aberto muda o jeito do som sair.
+const mic = {
+  stream: null, analyser: null, buf: null, denied: false,
+  async start() {
+    if (this.stream || this.denied || !navigator.mediaDevices?.getUserMedia || !sfx.ctx) return;
+    setSession('play-and-record');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false } });
+      if (stage !== 'assoprar') { stream.getTracks().forEach(t => t.stop()); setSession('playback'); return; }
+      this.stream = stream;
+      this.analyser = sfx.ctx.createAnalyser();
+      this.analyser.fftSize = 512;
+      sfx.ctx.createMediaStreamSource(stream).connect(this.analyser);
+      this.buf = new Float32Array(this.analyser.fftSize);
+      sfx.resume();
+    } catch {
+      this.denied = true;   // negou ou não tem microfone: fica só no toque, sem perguntar de novo
+      setSession('playback');
+    }
+  },
+  stop() {
+    if (!this.stream) return;
+    this.stream.getTracks().forEach(t => t.stop());
+    this.stream = this.analyser = null;
+    setSession('playback');
+  },
+  // volume (RMS) do que o microfone está ouvindo agora, 0..1
+  level() {
+    if (!this.analyser) return 0;
+    this.analyser.getFloatTimeDomainData(this.buf);
+    let sum = 0;
+    for (const v of this.buf) sum += v * v;
+    return Math.sqrt(sum / this.buf.length);
+  },
+};
+function setSession(type) { try { if (navigator.audioSession) navigator.audioSession.type = type; } catch { /* iOS antigo */ } }
+
+// sopro = barulho forte e contínuo; cada pedacinho de sopro apaga mais uma velinha
+function updateBlowing(dt) {
+  const lvl = clock - stageAt > MIC_GRACE ? mic.level() : 0;
+  wind += (Math.min(lvl / BLOW_LEVEL, 1.5) - wind) * Math.min(dt * 12, 1);
+  blowTime = lvl > BLOW_LEVEL ? blowTime + dt : Math.max(0, blowTime - dt * 2);
+  if (blowTime > BLOW_HOLD && clock - lastBlowOut > .2) {
+    lastBlowOut = clock;
+    const lit = cake.candles.filter(c => !c.out);
+    if (lit.length) putOut([pick(lit)]);
+  }
 }
 
 function bite() {
@@ -414,9 +471,10 @@ function drawFlames(t) {
     g.addColorStop(0, '#fffbe0'); g.addColorStop(.4, '#ffd23c'); g.addColorStop(1, '#ff7a1a');
     ctx.fillStyle = g;
     ctx.beginPath();
-    ctx.moveTo(c.fx, c.fy - fh * .75 + Math.sin(t * 13 + i) * cw * .15);
+    const lean = wind * fh * (.5 + Math.sin(t * 40 + i) * .15);   // a chama deita com o sopro
+    ctx.moveTo(c.fx + lean, c.fy - fh * .75 + Math.sin(t * 13 + i) * cw * .15);
     ctx.quadraticCurveTo(c.fx + fw, c.fy, c.fx, c.fy + fh * .3);
-    ctx.quadraticCurveTo(c.fx - fw, c.fy, c.fx, c.fy - fh * .75 + Math.sin(t * 13 + i) * cw * .15);
+    ctx.quadraticCurveTo(c.fx - fw, c.fy, c.fx + lean, c.fy - fh * .75 + Math.sin(t * 13 + i) * cw * .15);
     ctx.fill();
   });
 }
@@ -512,6 +570,8 @@ function update(dt) {
   if (stage === 'velas' && !pending && cake.candles.length && clock - lastCandleAt > CANDLE_WAIT) later('acender', 0);
   else if (stage === 'acender') updateLighting();
   else if (stage === 'cantar') updateSinging();
+  else if (stage === 'assoprar') updateBlowing(dt);
+  if (stage !== 'assoprar') wind = 0;
   const night = stage === 'acender' || stage === 'cantar' || stage === 'assoprar';
   dark += ((night ? 1 : 0) - dark) * Math.min(dt * 2, 1);
   updateHelp();
