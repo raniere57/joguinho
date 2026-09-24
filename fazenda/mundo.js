@@ -3,7 +3,7 @@
 // a macieira, a horta, o trator, o sol que vira lua e as nuvens que chovem.
 
 const HORIZON = .4;                  // onde o céu encontra os morros (fração da altura)
-const WORLD_PORTRAIT = 2.6, WORLD_LANDSCAPE = 1.45;
+const WORLD_IN_S = 18;              // largura do mundo medida em tamanhos de bicho: mesmo espaço em pé ou deitado
 // posições em fração da largura do mundo (x) e da altura da tela (y)
 const SPOT = {
   barn: [.12, .52], doghouse: [.335, .6], nest: [.13, .775], flowersA: [.04, .9], flowersB: [.5, .93],
@@ -152,7 +152,7 @@ function drawBarn() {
   ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
   const dw = w * .44, dh = h * .7, dx = x - dw / 2, dy = y - dh;
   ctx.fillStyle = '#4a2418'; ctx.fillRect(dx, dy, dw, dh);
-  if (open > 0 && clock - barnState.openAt < .9) drawSprite('🐴', x, y, S * 1.3 * easeOutBack(clamp01(open)), false);
+  if (open > 0 && clock - barnState.openAt < .9) drawSprite('🐎', x, y, S * 1.3 * easeOutBack(clamp01(open)), false);
   for (const side of [-1, 1]) {
     const pw = dw / 2 * (1 - open * .85), px = side < 0 ? dx : dx + dw - pw;
     ctx.fillStyle = '#e8574d'; ctx.fillRect(px, dy, pw, dh);
@@ -163,7 +163,7 @@ function drawBarn() {
 }
 
 // ---------- moinho que gira mais rápido quando toca ----------
-function millBox() { return { x: wX(SPOT.windmill[0]), y: H * SPOT.windmill[1], h: S * (H > W ? 2.6 : 1.9) }; }
+function millBox() { return { x: wX(SPOT.windmill[0]), y: H * SPOT.windmill[1], h: S * (H > W ? 2.6 : 1.7) }; }
 function drawMill(dt) {
   const { x, y, h } = millBox(), w = h * .36;
   mill.boost = Math.max(0, mill.boost - dt * 1.2);

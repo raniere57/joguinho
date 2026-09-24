@@ -79,6 +79,36 @@ function onUp() {
   press = null;
 }
 
+function onCancel() { press = null; vel = 0; }
+
+// setas na tela e rodinha do mouse/trackpad
+function panBy(dx) {
+  camGoal = clampCam((camGoal ?? camX) + dx);
+  pannedOnce = true; vel = 0;
+}
+const panBtns = [...document.querySelectorAll('.pan')];
+for (const b of panBtns) {
+  b.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    if (!started) return;
+    sfx.resume(); sfx.whoosh(); lastTap = clock;
+    panBy((b.classList.contains('left') ? -1 : 1) * W * .75);
+  });
+}
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  if (!started) return;
+  camGoal = null; vel = 0; pannedOnce = true;
+  camX = clampCam(camX + (Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY));
+}, { passive: false });
+
+function showPanBtns() {
+  const target = camGoal ?? camX, on = started && night < .5;
+  panBtns[0].classList.toggle('show', on && target > 4);
+  panBtns[1].classList.toggle('show', on && target < maxCam() - 4);
+  panBtns[1].classList.toggle('nudge', !pannedOnce);
+}
+
 function handleTap(x, y) {
   lastTap = clock;
   if (tapSky(x, y)) return;
@@ -220,7 +250,7 @@ function resize() {
   fitCanvas();
   const portrait = H >= W;
   S = Math.min(W * .21, H * (portrait ? .115 : .16), 110);
-  worldW = Math.round(W * (portrait ? WORLD_PORTRAIT : WORLD_LANDSCAPE));
+  worldW = Math.round(Math.max(W * 1.2, S * WORLD_IN_S));
   camX = clampCam(camX);
   sky = { ground: HORIZON };      // passarinho do cenário comum usa isso
   land = buildLand();
@@ -235,6 +265,7 @@ function update(dt, t) {
     if (camGoal !== null) { camX += (camGoal - camX) * Math.min(dt * 4, 1); if (Math.abs(camGoal - camX) < 1) camGoal = null; }
     else if (Math.abs(vel) > 5) { camX = clampCam(camX + vel * dt); vel *= Math.pow(.05, dt); }
   }
+  showPanBtns();
   updateFarmSky(dt);
   updateBirds(dt);
   updateAnimals(dt, t);
@@ -296,14 +327,6 @@ function drawArrow(t) {
   drawSprite('👉', a.x + bob, a.y + S * .3, S * .6, !a.right);
 }
 
-// antes de arrastar a primeira vez: setinha na borda mostrando que tem mais fazenda
-function drawEdgeHint(t) {
-  if (pannedOnce || !started || camX >= maxCam() - 5) return;
-  const k = .5 + .5 * Math.sin(t * 4);
-  ctx.fillStyle = `rgb(255 255 255 / ${.4 + .4 * k})`;
-  ctx.beginPath(); ctx.moveTo(W - 12, H * .7); ctx.lineTo(W - 34 - k * 6, H * .7 - 22); ctx.lineTo(W - 34 - k * 6, H * .7 + 22); ctx.fill();
-}
-
 function render(t) {
   drawFarmSky(t);
   drawBirds(t);
@@ -311,7 +334,6 @@ function render(t) {
   drawRain();
   drawNightTint();
   drawArrow(t);
-  drawEdgeHint(t);
   drawRings();
   if (started) drawMeter();
   drawParticles();
@@ -319,7 +341,7 @@ function render(t) {
 }
 
 boot({
-  resize, update, render, onTap, onMove, onUp, onBird: spawnBird,
+  resize, update, render, onTap, onMove, onUp, onCancel, onBird: spawnBird,
   onStart: () => {
     say('vamos', 'Vamos visitar a fazendinha? Toque nos bichinhos!');
     nextMissionAt = clock + 6;

@@ -12,7 +12,7 @@ const ANIMALS = [
   { id: 'galo', e: '🐓', at: [.52, .565], size: .8, perch: true, text: 'O galo faz: cocoricó!' },
   { id: 'galinha', hen: true, at: [.22, .79], size: 1, roam: .015, text: 'A galinha faz: có, có, có! E botou um ovo!' },
   { id: 'pato', e: '🦆', pond: true, size: .8, text: 'O pato faz: quá, quá, quá!' },
-  { id: 'sapo', e: '🐸', frog: true, size: .6, text: 'O sapo faz: croac, croac!' },
+  { id: 'sapo', frog: true, size: .7, text: 'O sapo faz: croac, croac!' },
   { id: 'gato', e: '🐈', loft: true, size: .75, text: 'O gato faz: miau!' },
   { id: 'porco', e: '🐖', at: [.76, .8], size: 1.05, roam: .012, text: 'O porquinho faz: óinc, óinc!' },
   { id: 'coelho', e: '🐇', at: [.815, .87], size: .85, roam: .008, text: 'O coelho adora cenoura! Nhac, nhac!' },
@@ -50,7 +50,7 @@ function placeAnimals() {
   animals = ANIMALS.map((d, i) => {
     const prev = old.find(o => o.id === d.id) || {};
     let x = wX(d.at?.[0] ?? 0), y = H * (d.at?.[1] ?? 0);
-    if (d.perch) y = H * SPOT.fence[2] - S * .5;
+    if (d.perch) y = H * SPOT.fence[2] - S * .44;
     if (d.loft) [x, y] = loftSpot();
     return { ...d, x, y, bx: x, by: y, s: S * d.size, faceRight: false, phase: i * 1.7, hopAt: prev.hopAt ?? -9,
       actAt: -99, act: null, wool: 1, pad: prev.pad ?? 0, angle: prev.angle ?? 0, taps: prev.taps ?? 0, munchAt: -99, flapAt: -99 };
@@ -261,6 +261,7 @@ function drawAnimal(a, t) {
   if (a.id === 'galo') rot += pulse(a.flapAt, .8) * Math.sin(clock * 30) * .15;
   if (!a.pond && !a.frog && !a.loft && !a.perch) shadowAt(a.x, a.y, size * .38 * (1 - h * .3));
   if (a.hen) drawHen(a, t, lift);
+  else if (a.frog) drawFrog(a, t);
   else drawSprite(a.e, a.x, a.y - lift, size, a.faceRight, rot, 1, (1 + munch) * (sleeping ? .95 : 1));
   if (a.id === 'cachorro' && ball?.held) drawSprite('🎾', a.x + (a.faceRight ? 1 : -1) * a.s * .42, a.y - a.s * .45, S * .35);
 }
@@ -289,6 +290,34 @@ function drawHen(a, t, lift) {
   ctx.save(); ctx.translate(-s * .02, -s * .5); ctx.rotate(-flap * .9);
   ctx.fillStyle = '#b8582a'; ctx.beginPath(); ctx.ellipse(-s * .05, s * .06, s * .24, s * .13, -.2, 0, TAU); ctx.fill();
   ctx.restore();
+  ctx.restore();
+}
+
+// sapo desenhado inteiro (o emoji é só a cara), de frente; no pulo estica as pernas
+function drawFrog(a, t) {
+  const s = a.s, jumping = a.act === 'jump', breathe = 1 + Math.sin(t * 3 + a.phase) * .03, look = a.faceRight ? 1 : -1;
+  const dark = '#3d9a3a', body = '#5cc24a';
+  ctx.save();
+  ctx.translate(a.x, a.y);
+  if (jumping) ctx.scale(.92, 1.12);
+  ctx.fillStyle = dark; ctx.strokeStyle = dark; ctx.lineCap = 'round';
+  if (jumping) {
+    ctx.lineWidth = s * .1;
+    for (const k of [-1, 1]) { ctx.beginPath(); ctx.moveTo(k * s * .2, -s * .2); ctx.lineTo(k * s * .32, s * .12); ctx.stroke(); }
+  } else {
+    for (const k of [-1, 1]) { ctx.beginPath(); ctx.ellipse(k * s * .3, -s * .14, s * .19, s * .13, k * .4, 0, TAU); ctx.fill(); }
+  }
+  for (const k of [-1, 1]) { ctx.beginPath(); ctx.ellipse(k * s * .15, -s * .02, s * .1, s * .045, 0, 0, TAU); ctx.fill(); }
+  ctx.fillStyle = body; ctx.beginPath(); ctx.ellipse(0, -s * .3, s * .36, s * .27 * breathe, 0, 0, TAU); ctx.fill();
+  ctx.fillStyle = '#c9f0a0'; ctx.beginPath(); ctx.ellipse(0, -s * .2, s * .22, s * .14, 0, 0, TAU); ctx.fill();
+  for (const k of [-1, 1]) {
+    ctx.fillStyle = body; circle(ctx, k * s * .17, -s * .54, s * .13); ctx.fill();
+    ctx.fillStyle = '#fff'; circle(ctx, k * s * .17, -s * .55, s * .09); ctx.fill();
+    ctx.fillStyle = '#1f1a2e'; circle(ctx, k * s * .17 + look * s * .025, -s * .55, s * .05); ctx.fill();
+    ctx.fillStyle = 'rgb(255 120 150 / .5)'; circle(ctx, k * s * .24, -s * .34, s * .05); ctx.fill();
+  }
+  ctx.strokeStyle = '#2a6e27'; ctx.lineWidth = Math.max(2, s * .04);
+  ctx.beginPath(); ctx.arc(0, -s * .42, s * .13, .2 * Math.PI, .8 * Math.PI); ctx.stroke();
   ctx.restore();
 }
 

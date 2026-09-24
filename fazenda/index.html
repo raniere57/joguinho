@@ -13,7 +13,25 @@
 <link rel="apple-touch-icon" href="../icon-180.png">
 <title>Fazendinha</title>
 <link rel="stylesheet" href="../comum/ui.css">
-<style>:root { --play-a: #9be07a; --play-b: #4caf3c; --play-shadow: #357d2a; }</style>
+<style>
+:root { --play-a: #9be07a; --play-b: #4caf3c; --play-shadow: #357d2a; }
+/* setas grandes pra andar pela fazenda (arrastar também funciona) */
+.pan {
+  position: fixed; z-index: 2; bottom: max(16px, env(safe-area-inset-bottom)); width: 64px; height: 64px; border-radius: 50%;
+  border: 0; padding: 0; background: rgb(255 255 255 / .55);
+  box-shadow: inset 0 0 0 2px #fff, 0 6px 16px rgb(20 60 30 / .25);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  touch-action: none; -webkit-touch-callout: none; user-select: none;
+  transition: opacity .25s ease, transform .15s ease; opacity: 0; pointer-events: none;
+}
+.pan.show { opacity: 1; pointer-events: auto; }
+.pan:active { transform: scale(.88); }
+.pan svg { width: 100%; height: 100%; fill: none; stroke: #2f7d23; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
+.pan.left { left: max(8px, env(safe-area-inset-left)); }
+.pan.right { right: max(8px, env(safe-area-inset-right)); }
+.pan.right.nudge { animation: nudge 1s ease-in-out infinite; }
+@keyframes nudge { 50% { transform: translateX(6px); } }
+</style>
 </head>
 <body>
 <canvas id="c"></canvas>
@@ -25,6 +43,9 @@
     <path d="M13 24.5 24 15l11 9.5M16 22.5V34h6v-6h4v6h6V22.5"/>
   </svg>
 </button>
+
+<button class="pan left" aria-label="Ir para a esquerda"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M37 20 25 32l12 12"/></svg></button>
+<button class="pan right" aria-label="Ir para a direita"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M27 20l12 12-12 12"/></svg></button>
 
 <button id="start" aria-label="Jogar">
   <span class="play">

@@ -16,7 +16,7 @@ function frame(now) {
 let wakeLock = null;
 const keepAwake = () => navigator.wakeLock?.request('screen').then(l => { wakeLock = l; }).catch(() => {});
 
-// game = { resize, update, render, onTap(x, y), onStart(), onBird?, onMove?(x, y), onUp?(x, y) }
+// game = { resize, update, render, onTap(x, y), onStart(), onBird?, onMove?(x, y), onUp?(x, y), onCancel?() }
 function boot(g) {
   game = g;
 
@@ -37,6 +37,8 @@ function boot(g) {
     sfx.resume();
     if (started) game.onUp?.(e.clientX, e.clientY);
   });
+  // iOS cancela o toque quando o sistema rouba o gesto (ex.: puxar da borda)
+  canvas.addEventListener('pointercancel', () => { if (started) game.onCancel?.(); });
   addEventListener('contextmenu', e => e.preventDefault());
   document.addEventListener('gesturestart', e => e.preventDefault());
 
