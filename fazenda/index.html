@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#6ec6ff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Joguinhos">
+<link rel="manifest" href="../manifest.json">
+<link rel="icon" href="../icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../icon-180.png">
+<title>Fazendinha</title>
+<link rel="stylesheet" href="../comum/ui.css">
+<style>:root { --play-a: #9be07a; --play-b: #4caf3c; --play-shadow: #357d2a; }</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<button id="home" aria-label="Voltar ao menu (segure)">
+  <svg viewBox="0 0 48 48" aria-hidden="true">
+    <circle class="track" cx="24" cy="24" r="21"/>
+    <circle class="ring" cx="24" cy="24" r="21"/>
+    <path d="M13 24.5 24 15l11 9.5M16 22.5V34h6v-6h4v6h6V22.5"/>
+  </svg>
+</button>
+
+<button id="start" aria-label="Jogar">
+  <span class="play">
+    <svg viewBox="0 0 100 100" aria-hidden="true"><path d="M38 28c0-4 4-6 7-4l30 20c3 2 3 6 0 8L45 72c-3 2-7 0-7-4Z"/></svg>
+  </span>
+</button>
+
+<script src="../comum/base.js"></script>
+<script src="../comum/efeitos.js"></script>
+<script src="../comum/som.js"></script>
+<script src="../comum/cenario.js"></script>
+<script src="../comum/medidor.js"></script>
+<script src="../comum/ui.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
