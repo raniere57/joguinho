@@ -16,7 +16,7 @@ function frame(now) {
 let wakeLock = null;
 const keepAwake = () => navigator.wakeLock?.request('screen').then(l => { wakeLock = l; }).catch(() => {});
 
-// game = { resize, update, render, onTap(x, y), onStart(), onBird?, onMove?(x, y) }
+// game = { resize, update, render, onTap(x, y), onStart(), onBird?, onMove?(x, y), onUp?(x, y) }
 function boot(g) {
   game = g;
 
@@ -33,7 +33,10 @@ function boot(g) {
     game.onMove(e.clientX, e.clientY);
   });
   // iOS só destrava o áudio no fim do toque, não no começo
-  canvas.addEventListener('pointerup', () => sfx.resume());
+  canvas.addEventListener('pointerup', e => {
+    sfx.resume();
+    if (started) game.onUp?.(e.clientX, e.clientY);
+  });
   addEventListener('contextmenu', e => e.preventDefault());
   document.addEventListener('gesturestart', e => e.preventDefault());
 

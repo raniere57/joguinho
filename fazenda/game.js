@@ -1,456 +1,317 @@
 'use strict';
-// Fazendinha: toca nos bichos (cada um faz seu som), a galinha bota ovo e nasce pintinho, a horta dá cenoura
-// pro coelho, o porquinho rola na lama, o cavalo sai do celeiro, o trator passeia e o sol vira lua
+// Fazendinha: fazenda larga pra explorar arrastando o dedo. A tia pede missões ("Onde está o sapo?",
+// "O porquinho quer uma maçã!") e tudo na tela responde ao toque.
 
-loadVoices(['vamos', 'vaca', 'porco', 'ovelha', 'galinha', 'galo', 'pato', 'cavalo', 'cachorro', 'coelho', 'ovo',
-  'pintinho', 'broto', 'cenoura', 'leite', 'lama', 'trator', 'noite', 'dia', 'dormindo', 'muito-bem']);
+loadVoices(['vamos', 'vaca', 'porco', 'ovelha', 'galinha', 'galo', 'pato', 'cavalo', 'cachorro', 'coelho', 'gato', 'sapo',
+  'pintinho', 'cenoura', 'leite', 'lama', 'trator', 'noite', 'dia', 'dormindo', 'muito-bem', 'achou', 'adorou', 'chuva',
+  'maca', 'moinho', 'bolinha', 'la', 'arrasta',
+  'onde-vaca', 'onde-porco', 'onde-ovelha', 'onde-galinha', 'onde-pato', 'onde-cachorro', 'onde-coelho', 'onde-gato',
+  'onde-sapo', 'onde-galo', 'onde-cavalo',
+  'fome-vaca', 'fome-ovelha', 'fome-coelho', 'fome-galinha', 'fome-porco', 'fome-cachorro']);
 
-// at = posição (fração da tela); roam = quanto passeia pros lados
-const ANIMALS = [
-  { id: 'cachorro', e: '🐕', at: [.13, .615], size: .9, roam: .03, text: 'O cachorro faz: au, au!' },
-  { id: 'vaca', e: '🐄', at: [.5, .6], size: 1.3, roam: .04, text: 'A vaca faz: muuuu!' },
-  { id: 'galo', e: '🐓', at: [.66, .535], size: .7, roam: 0, text: 'O galo faz: cocoricó!' },
-  { id: 'ovelha', e: '🐑', at: [.24, .695], size: 1.05, roam: .04, text: 'A ovelha faz: méééé!' },
-  { id: 'porco', e: '🐖', at: [.55, .745], size: 1, roam: .03, text: 'O porquinho faz: óinc, óinc!' },
-  { id: 'galinha', e: '🐔', at: [.82, .8], size: .85, roam: .05, text: 'A galinha faz: có, có, có!' },
-  { id: 'pato', e: '🦆', at: [.76, .625], size: .8, pond: true, text: 'O pato faz: quá, quá, quá!' },
-  { id: 'coelho', e: '🐇', at: [.13, .885], size: .85, roam: .02, text: 'O coelho adora cenoura! Nhac, nhac!' },
-];
-const POND = [.76, .635, .19, .042];          // x, y, raio x (de W), raio y (de H)
-const MUD = [.27, .775, .13, .024];
-const PLOTS = [.4, .6, .8], PLOT_Y = .9;
-const MAX_EGGS = 2, MAX_CHICKS = 4;
-const DRIVE_TIME = 5;                         // volta do trator
-const BARN_OPEN = 3.5;                        // cavalo fica pra fora esse tempo
-const MILK_EVERY = 3, EGG_EVERY = 2;
+const FEEDS = { vaca: '🌾', ovelha: '🌾', coelho: '🥕', galinha: '🌽', porco: '🍎', cachorro: '🦴' };
+const NAMES = { vaca: 'a vaca', porco: 'o porquinho', ovelha: 'a ovelha', galinha: 'a galinha', pato: 'o pato', cachorro: 'o cachorro',
+  coelho: 'o coelho', gato: 'o gatinho', sapo: 'o sapo', galo: 'o galo', cavalo: 'o cavalo' };
+const DRAG_START = 12;            // px que o dedo anda antes de virar arrasto (e não toque)
+const MISSION_REPEAT = 14, MISSION_HINT = 7;
 
-let farm = null, animals = [], eggs = [], chicks = [], plots = [], carrots = [], zzz = [];
-let S = 40, barn = null, tractor = null, night = 0, isNight = false, dayAt = -99, found = new Set(), frameDt = 0, lastSleepSay = -99;
-const find = id => animals.find(a => a.id === id);
+let press = null, vel = 0, camGoal = null, pannedOnce = false, frameDt = 0, lastSleepSay = -99;
+let mission = null, nextMissionAt = 0, lastMission = null;
 
-meter.size = 8;
+meter.size = 5;
 meter.onFull = () => {
   sfx.fanfare();
   navigator.vibrate?.([30, 60, 30]);
   confettiRain();
   animals.forEach((a, i) => { a.hopAt = clock + i * .1; });
   say('muito-bem', 'Muito bem! Você cuida muito bem da fazendinha!', true);
-  found.clear();                              // dá pra ganhar as estrelas de novo
 };
 
-// cada coisa nova descoberta vale uma estrela
-function discover(id, x, y) {
-  if (found.has(id)) return;
-  found.add(id);
-  launchStar(x, y);
+const maxCam = () => Math.max(0, worldW - W);
+const clampCam = x => Math.min(Math.max(x, 0), maxCam());
+
+// ---------- missões ----------
+function newMission() {
+  const feed = Math.random() < .45;
+  const pool = feed ? Object.keys(FEEDS) : Object.keys(NAMES);
+  const id = pick(pool.filter(i => i !== lastMission));
+  mission = { type: feed ? 'feed' : 'find', id, at: clock, saidAt: clock };
+  lastMission = id;
+  sayMission();
 }
 
-// ---------- cenário da fazenda ----------
-function buildFarm() {
-  const [c, g] = layer(W, H);
-  drawPond(g);
-  drawMud(g);
-  drawFence(g);
-  for (const [x, y] of [[.05, .47], [.93, .56], [.35, .83], [.95, .94]]) drawBush(g, x * W, y * H, S * .5);
-  return c;
+function sayMission() {
+  mission.saidAt = clock;
+  if (mission.type === 'find') say('onde-' + mission.id, `Onde está ${NAMES[mission.id]}?`);
+  else say('fome-' + mission.id, `${NAMES[mission.id]} está com fome!`);
 }
 
-function drawPond(g) {
-  const [x, y, rx, ry] = POND;
-  g.fillStyle = '#6cc36a';
-  g.beginPath(); g.ellipse(x * W, y * H + 3, rx * W + 6, ry * H + 6, 0, 0, TAU); g.fill();
-  const grad = g.createRadialGradient(x * W - rx * W * .3, y * H - ry * H * .4, 4, x * W, y * H, rx * W);
-  grad.addColorStop(0, '#bfeaff'); grad.addColorStop(1, '#4aa8e8');
-  g.fillStyle = grad;
-  g.beginPath(); g.ellipse(x * W, y * H, rx * W, ry * H, 0, 0, TAU); g.fill();
-  g.fillStyle = '#5cc85a';
-  for (const [dx, dy] of [[-.6, .2], [.55, -.1]]) { g.beginPath(); g.ellipse(x * W + dx * rx * W, y * H + dy * ry * H, S * .16, S * .07, 0, 0, TAU); g.fill(); }
+function missionTarget() {
+  if (!mission) return null;
+  if (mission.id === 'cavalo') { const b = barnBox(); return { x: b.x, y: b.y - b.h * .4 }; }
+  const a = byId(mission.id);
+  return a && { x: a.x, y: a.y - a.s * .5 };
 }
 
-function drawMud(g) {
-  const [x, y, rx, ry] = MUD;
-  g.fillStyle = '#8a5a35';
-  g.beginPath(); g.ellipse(x * W, y * H, rx * W, ry * H, 0, 0, TAU); g.fill();
-  g.fillStyle = 'rgb(255 255 255 / .18)';
-  g.beginPath(); g.ellipse(x * W - rx * W * .3, y * H - ry * H * .3, rx * W * .3, ry * H * .3, 0, 0, TAU); g.fill();
+function completeMission(x, y) {
+  launchStar(x - camX, y);
+  mission = null;
+  nextMissionAt = clock + rand(9, 14);
 }
 
-function drawFence(g) {
-  const y = H * .555, h = S * .5, x0 = W * .4;
-  g.fillStyle = '#c98b4f'; g.strokeStyle = '#8a5a2e'; g.lineWidth = 1.5;
-  for (const dy of [.25, .65]) { g.fillRect(x0, y - h + h * dy, W - x0, h * .14); }
-  for (let x = x0; x < W + 10; x += Math.max(34, W / 9)) {
-    g.beginPath(); g.roundRect?.(x - 4, y - h, 8, h + 4, 3); g.fill(); g.stroke();
-  }
+// ---------- toques: arrastar move a câmera; toque sem arrastar age ----------
+function onTap(x, y) { press = { x, y, cam: camX, moved: false, lastX: x, lastT: clock }; vel = 0; camGoal = null; }
+
+function onMove(x) {
+  if (!press) return;
+  if (!press.moved && Math.abs(x - press.x) > DRAG_START) press.moved = true;
+  if (!press.moved) return;
+  camX = clampCam(press.cam - (x - press.x));
+  const dt = Math.max(clock - press.lastT, 1 / 120);
+  vel = vel * .5 + ((press.lastX - x) / dt) * .5;
+  press.lastX = x; press.lastT = clock;
+  pannedOnce = true;
 }
 
-function drawBush(g, x, y, r) {
-  g.fillStyle = '#4fb248';
-  for (const [dx, dy, k] of [[-.6, .1, .7], [0, -.2, .9], [.6, .1, .7]]) { circle(g, x + dx * r, y + dy * r, r * k); g.fill(); }
-  g.fillStyle = '#ff6f91';
-  for (const [dx, dy] of [[-.5, -.2], [.3, -.5], [.6, .2]]) { circle(g, x + dx * r, y + dy * r, r * .12); g.fill(); }
+function onUp() {
+  if (press && !press.moved) handleTap(press.x, press.y);
+  if (press && clock - press.lastT > .1) vel = 0;
+  press = null;
 }
 
-// celeiro vermelho com portas que abrem
-function drawBarn(t) {
-  const { x, y, w } = barn, h = w * .7, open = barnOpen();
-  ctx.fillStyle = '#d9433b';
-  ctx.fillRect(x - w / 2, y - h, w, h);
-  ctx.fillStyle = '#a8302a';
-  ctx.beginPath(); ctx.moveTo(x - w * .6, y - h + 2); ctx.lineTo(x - w * .38, y - h - w * .32); ctx.lineTo(x + w * .38, y - h - w * .32); ctx.lineTo(x + w * .6, y - h + 2); ctx.fill();
-  ctx.strokeStyle = '#fff'; ctx.lineWidth = Math.max(3, w * .03); ctx.lineJoin = 'round';
-  ctx.beginPath(); ctx.moveTo(x - w * .6, y - h + 2); ctx.lineTo(x - w * .38, y - h - w * .32); ctx.lineTo(x + w * .38, y - h - w * .32); ctx.lineTo(x + w * .6, y - h + 2); ctx.stroke();
-  ctx.fillStyle = '#fff'; circle(ctx, x, y - h - w * .1, w * .09); ctx.fill();
-  ctx.fillStyle = '#f2c14e'; circle(ctx, x, y - h - w * .1, w * .065); ctx.fill();
-  // abertura escura, cavalo e as duas portas
-  const dw = w * .44, dh = h * .66, dx = x - dw / 2, dy = y - dh;
-  ctx.fillStyle = '#4a2418'; ctx.fillRect(dx, dy, dw, dh);
-  if (open > 0) {
-    const size = Math.round(S * 1.3 / 4) * 4, pop = easeOutBack(clamp01(open * 1.4));
-    ctx.save(); ctx.beginPath(); ctx.rect(dx - dw, dy - dh, dw * 3, dh * 2); ctx.clip();
-    ctx.drawImage(emojiSprite('🐴', size), x - size / 2, y - size * .9 * pop + size * .12, size, size);
-    ctx.restore();
-  }
-  for (const side of [-1, 1]) {
-    const pw = dw / 2 * (1 - open * .85), px = side < 0 ? dx : dx + dw - pw;
-    ctx.fillStyle = '#e8574d'; ctx.fillRect(px, dy, pw, dh);
-    ctx.strokeStyle = '#fff'; ctx.lineWidth = Math.max(2, w * .02);
-    ctx.strokeRect(px, dy, pw, dh);
-    ctx.beginPath(); ctx.moveTo(px, dy); ctx.lineTo(px + pw, dy + dh); ctx.moveTo(px + pw, dy); ctx.lineTo(px, dy + dh); ctx.stroke();
-  }
-}
-
-const clamp01 = v => Math.min(Math.max(v, 0), 1);
-function barnOpen() {
-  const age = clock - barn.openAt;
-  if (age > BARN_OPEN + .4) return 0;
-  return age < .4 ? age / .4 : age > BARN_OPEN ? 1 - (age - BARN_OPEN) / .4 : 1;
-}
-
-// ---------- bichos ----------
-function hop(a) { a.hopAt = clock; }
-
-function tapAnimal(a) {
-  hop(a);
-  if (night > .5 && a.id !== 'galo') {
-    zzz.push({ x: a.x, y: a.y - a.s * .6, t: 0 });
-    if (clock - lastSleepSay > 3) { lastSleepSay = clock; say('dormindo', 'Shhh... está dormindo.'); }
-    return;
-  }
-  say(a.id, a.text);
-  sfx.giggle((a.x / W) * 2 - 1);
-  hearts(a.x, a.y - a.s * .5, 4);
-  discover(a.id, a.x, a.y);
-  a.taps = (a.taps || 0) + 1;
-  if (a.id === 'vaca' && a.taps % MILK_EVERY === 0) popItem('🥛', a, 'leite', 'Leitinho fresquinho!');
-  if (a.id === 'porco') a.mudAt = clock;
-  if (a.id === 'galinha' && a.taps % EGG_EVERY === 0 && eggs.length < MAX_EGGS && chicks.length + eggs.length < MAX_CHICKS) layEgg(a);
-  if (a.id === 'pato') ring(a.x, a.y + a.s * .2, a.s * .8);
-}
-
-// leitinho: sobe, brilha e some
-let items = [];
-function popItem(e, a, line, text) {
-  items.push({ e, x: a.x, y: a.y - a.s * .6, t: 0 });
-  say(line, text, true);
-  sfx.bell(1046.5);
-  discover(line, a.x, a.y);
-}
-
-function layEgg(hen) {
-  eggs.push({ x: hen.x + rand(-S * .5, S * .5), y: hen.y + S * .3, cracks: 0, born: clock, wobbleAt: -9 });
-  sfx.pop();
-  say('ovo', 'Olha! A galinha botou um ovo!', true);
-  discover('ovo', hen.x, hen.y);
-}
-
-function tapEgg(egg) {
-  egg.cracks++;
-  egg.wobbleAt = clock;
-  sfx.bell(880 + egg.cracks * 200);
-  if (egg.cracks < 3) return;
-  eggs = eggs.filter(e => e !== egg);
-  chicks.push({ x: egg.x, y: egg.y, born: clock, hopAt: clock });
-  burst(egg.x, egg.y, S * .4, 50, 14);
-  sfx.chirp();
-  say('pintinho', 'Nasceu um pintinho! Piu, piu!');
-  discover('pintinho', egg.x, egg.y);
-}
-
-function tapPlot(p) {
-  if (p.stage < 2) {
-    p.stage++; p.at = clock;
-    sfx.bell(659 + p.stage * 200);
-    burst(p.x, p.y, S * .3, 100, 8);
-    if (p.stage === 1) say('broto', 'Olha, está crescendo!');
-    return;
-  }
-  // colheu: a cenoura voa até o coelho
-  p.stage = 0; p.at = clock;
-  const bunny = find('coelho');
-  carrots.push({ x0: p.x, y0: p.y - S * .3, x1: bunny.x, y1: bunny.y - bunny.s * .3, t: 0 });
-  sfx.whoosh();
-  say('cenoura', 'Uma cenoura! Vamos dar pro coelho?');
-  discover('cenoura', p.x, p.y);
-}
-
-function tapTractor() {
-  if (clock - tractor.driveAt < DRIVE_TIME) return;
-  tractor.driveAt = clock;
-  say('trator', 'Olha o trator! Vrum, vrum!');
-  sfx.boing();
-  discover('trator', tractor.x, tractor.y);
-}
-
-function tapBarn() {
-  if (barnOpen() > 0) return;
-  barn.openAt = clock;
-  sfx.whoosh();
-  setTimeout(() => { if (night < .5) say('cavalo', 'O cavalo faz: hiiiiiii!'); else say('dormindo', 'Shhh... está dormindo.'); }, 350);
-  discover('cavalo', barn.x, barn.y - barn.w * .3);
-}
-
-function toggleNight() {
-  isNight = !isNight;
-  sfx.chime();
-  if (isNight) { say('noite', 'Boa noite, fazendinha! Os bichinhos vão dormir.'); discover('noite', sky.sunX, sky.sunY); }
-  else {
-    dayAt = clock;
-    hop(find('galo'));
-    say('dia', 'Cocoricó! Bom dia, fazendinha!');
-  }
-}
-
-// ---------- toques ----------
-function onTap(x, y) {
-  if (Math.hypot(x - sky.sunX, y - sky.sunY) < sky.sunR * 1.5) return toggleNight();
-  if (tapBird(x, y)) return;
-  const egg = eggs.find(e => Math.hypot(x - e.x, y - e.y) < S * .5);
-  if (egg) return tapEgg(egg);
-  const chick = chicks.find(c => Math.hypot(x - c.x, y - c.y) < S * .45);
-  if (chick) { chick.hopAt = clock; sfx.chirp(); return; }
-  // o bicho mais perto do dedo, dentro do tamanho dele
-  const a = animals.filter(a => Math.hypot(x - a.x, y - (a.y - a.s * .3)) < a.s * .65)
-    .sort((p, q) => Math.hypot(x - p.x, y - p.y) - Math.hypot(x - q.x, y - q.y))[0];
-  if (a) return tapAnimal(a);
-  if (Math.abs(x - tractor.x) < S * .7 && Math.abs(y - (tractor.y - S * .3)) < S * .6) return tapTractor();
-  const p = plots.find(p => Math.abs(x - p.x) < W * .1 && Math.abs(y - p.y) < S * .7);
-  if (p) return tapPlot(p);
-  if (Math.abs(x - barn.x) < barn.w * .55 && y < barn.y && y > barn.y - barn.w * 1.05) return tapBarn();
+function handleTap(x, y) {
+  lastTap = clock;
+  if (tapSky(x, y)) return;
+  if (tapArrow(x, y)) return;
+  if (tapFarmBird(x, y)) return;
+  const cloud = tapCloud(x, y);
+  if (cloud) { if (cloud.grew) say('chuva', 'Choveu! A horta cresceu!'); return; }
+  if (tapWorld(x + camX, y)) return;
   sfx.bell(); ring(x, y, R * .3); burst(x, y, R * .3, rand(0, 360), 6);
 }
 
-// ---------- movimento ----------
-function updateAnimals(dt, t) {
-  for (const a of animals) {
-    const still = night > .5;
-    if (a.pond) {
-      const [px, py, rx, ry] = POND, ang = t * .35 + a.phase;
-      a.x = px * W + Math.cos(ang) * rx * W * .55;
-      a.y = py * H + Math.sin(ang) * ry * H * .45;
-      a.dir = -Math.sin(ang) > 0 ? 1 : -1;
-      continue;
+function tapSky(x, y) {
+  const { x: sx, y: sy } = sunPos();
+  if (Math.hypot(x - sx, y - sy) > sunR * 1.6) return false;
+  if (!isNight) {
+    if (clock - sunTapAt < 1.5) return true;
+    sunTapAt = clock;
+    sfx.giggle(); burst(sx, sy, sunR, 45, 16);
+    setTimeout(() => { isNight = true; say('noite', 'Boa noite, fazendinha! Os bichinhos vão dormir.'); }, 1200);
+  } else wakeUp();
+  return true;
+}
+
+function wakeUp() {
+  moonTapAt = clock;
+  isNight = false;
+  sfx.chime();
+  const galo = byId('galo');
+  galo.flapAt = clock; galo.hopAt = clock;
+  setTimeout(() => say('dia', 'Cocoricó! Bom dia, fazendinha!'), 600);
+}
+
+// seta na beirada da tela apontando pra missão: tocar leva a câmera até lá
+function arrowInfo() {
+  const tg = missionTarget();
+  if (!tg || night > .5) return null;
+  const sx = tg.x - camX;
+  if (sx > S * .3 && sx < W - S * .3) return null;
+  const right = sx >= W - S * .3;
+  return { x: right ? W - S * .75 : S * .75, y: Math.min(Math.max(tg.y, H * .5), H * .85), right, tg };
+}
+
+function tapArrow(x, y) {
+  const a = arrowInfo();
+  if (!a || Math.hypot(x - a.x, y - a.y) > S * .8) return false;
+  camGoal = clampCam(a.tg.x - W / 2);
+  sfx.whoosh();
+  return true;
+}
+
+function tapWorld(wx, y) {
+  const near = (px, py, r) => Math.hypot(wx - px, y - py) < r;
+  const egg = eggs.find(e => near(e.x, e.y - S * .3, S * .5));
+  if (egg) { tapEgg(egg); return true; }
+  const chick = chicks.find(c => near(c.x, c.y - S * .25, S * .45));
+  if (chick) { chick.hopAt = clock; sfx.chirp(); return true; }
+  if (horse.x !== undefined && clock - horse.at < GALLOP_TIME && near(horse.x, horse.y - S * .7, S)) {
+    say('cavalo', 'O cavalo faz: hiiiiiii!');
+    if (mission?.id === 'cavalo') { say('achou', 'Achou! Muito bem!', true); completeMission(horse.x, horse.y - S); }
+    return true;
+  }
+  const a = animals.filter(a => !a.hidden && near(a.x, a.y - a.s * .45, a.s * .7))
+    .sort((p, q) => Math.hypot(wx - p.x, y - p.y) - Math.hypot(wx - q.x, y - q.y))[0];
+  if (a) { tapAnimal(a); return true; }
+  return tapThing(wx, y, near);
+}
+
+function tapAnimal(a) {
+  if (night > .5 && a.id !== 'galo') {
+    a.hopAt = clock;
+    zzz.push({ x: a.x, y: a.y - a.s * .8, t: 0 });
+    if (clock - lastSleepSay > 3) { lastSleepSay = clock; say('dormindo', 'Shhh... está dormindo.'); }
+    return;
+  }
+  if (a.id === 'galo' && isNight) { a.flapAt = clock; wakeUp(); return; }
+  if (mission?.id === a.id) {
+    const x = a.x, y = a.y - a.s;
+    if (mission.type === 'feed') { a.hopAt = clock; feed(a, FEEDS[a.id]); completeMission(x, y); return; }
+    completeMission(x, y);
+    actAnimal(a);
+    say('achou', 'Achou! Muito bem!', true);
+    return;
+  }
+  actAnimal(a);
+}
+
+function tapThing(wx, y, near) {
+  const plot = plots.find(p => Math.abs(wx - p.x) < S * .8 && Math.abs(y - p.y) < S * .6);
+  if (plot) {
+    if (plot.stage < 3) { growPlot(plot); sfx.bell(659 + plot.stage * 200); return true; }
+    plot.stage = 0; plot.at = clock;
+    const b = byId('coelho');
+    carrots.push({ x0: plot.x, y0: plot.y - S * .3, x1: b.x, y1: b.y - b.s * .3, t: 0 });
+    sfx.whoosh();
+    say('cenoura', 'Uma cenoura! Vamos dar pro coelho?');
+    return true;
+  }
+  if (fallen.some(f => near(f.cx, f.cy, S * .5))) { pigGo(byId('porco')); return true; }
+  const tr = treeBox();
+  if (near(tr.x, tr.y - tr.r * 1.5, tr.r * 1.3)) {
+    if (shakeTree()) {
+      say('maca', 'Caiu uma maçã!');
+      setTimeout(() => { const pig = byId('porco'); if (!pig.act && night < .5) pigGo(pig); }, 1400);
     }
-    let tx = a.bx + (still ? 0 : Math.sin(t * .3 + a.phase) * W * a.roam), ty = a.by;
-    if (a.id === 'porco' && clock - a.mudAt < 3) {
-      tx = MUD[0] * W; ty = MUD[1] * H - a.s * .1;
-      if (!a.splashed && Math.abs(a.x - tx) < S * .2) {
-        a.splashed = true;
-        burst(a.x, a.y, a.s * .5, 25, 16);
-        sfx.splash();
-        say('lama', 'O porquinho adora lama!', true);
-        discover('lama', a.x, a.y);
-      }
-    } else a.splashed = false;
-    const vx = (tx - a.x) * Math.min(dt * 3, 1);
-    if (Math.abs(vx) > .05) a.dir = vx > 0 ? 1 : -1;
-    a.x += vx; a.y += (ty - a.y) * Math.min(dt * 3, 1);
+    return true;
   }
-  const hen = find('galinha');
-  chicks.forEach((c, i) => {
-    const tx = hen.x - hen.dir * S * (.55 + i * .45), ty = hen.y + S * .15 + (i % 2) * S * .12;
-    c.x += (tx - c.x) * Math.min(dt * 2.5, 1); c.y += (ty - c.y) * Math.min(dt * 2.5, 1);
-  });
-  for (const c of carrots) {
-    c.t += dt;
-    if (c.t >= .8 && !c.eaten) {
-      c.eaten = true;
-      const bunny = find('coelho');
-      hop(bunny);
-      say('coelho', bunny.text, true);
-      sfx.gulp();
-      hearts(bunny.x, bunny.y - bunny.s * .5, 5);
-      discover('coelho', bunny.x, bunny.y);
-    }
+  const m = millBox();
+  if (Math.abs(wx - m.x) < m.h * .55 && y < m.y && y > m.y - m.h * 1.5) {
+    mill.boost = 3; sfx.whoosh();
+    say('moinho', 'Olha o moinho girando!');
+    return true;
   }
-  carrots = carrots.filter(c => c.t < .8);
-}
-
-// ---------- desenho ----------
-let hearty = [];
-function hearts(x, y, n) {
-  for (let i = 0; i < n; i++) hearty.push({ x: x + rand(-S * .4, S * .4), y, vy: -rand(40, 80), t: 0, life: rand(1, 1.5) });
-}
-
-function drawSprite(e, x, y, size, dir = -1, rot = 0, sy = 1) {
-  const s = Math.round(size / 4) * 4;
-  ctx.save();
-  ctx.translate(x, y); ctx.rotate(rot); ctx.scale(dir > 0 ? -1 : 1, sy);
-  ctx.drawImage(emojiSprite(e, s), -s / 2, -s, s, s);
-  ctx.restore();
-}
-
-function hopOf(a, len = .5) {
-  const p = (clock - a.hopAt) / len;
-  return p >= 0 && p < 1 ? Math.sin(p * Math.PI) : 0;
-}
-
-function shadow(x, y, r) {
-  ctx.fillStyle = 'rgb(40 80 30 / .18)';
-  ctx.beginPath(); ctx.ellipse(x, y, r, r * .28, 0, 0, TAU); ctx.fill();
-}
-
-function drawAnimal(a, t) {
-  const h = hopOf(a), bob = night > .5 ? Math.sin(t * 1.5 + a.phase) * .02 : 0;
-  const rolling = a.id === 'porco' && clock - a.mudAt < 3 && a.splashed ? Math.sin(t * 8) * .5 : 0;
-  if (!a.pond) shadow(a.x, a.y, a.s * .38 * (1 - h * .3));
-  drawSprite(a.e, a.x, a.y - h * a.s * .45, a.s, a.dir, rolling + Math.sin(t * 2 + a.phase) * .03, 1 + bob);
-}
-
-function drawTractor(t) {
-  const age = clock - tractor.driveAt, driving = age < DRIVE_TIME;
-  let x = tractor.bx;
-  if (driving) {
-    const p = age / DRIVE_TIME, span = W + S * 3;
-    x = ((tractor.bx + p * span + S * 1.5) % span) - S * 1.5;
-    if (Math.random() < frameDt * 8) smoke.push({ x: x + S * .3, y: tractor.y - S * .8, t: 0 });
+  const b = barnBox();
+  if (Math.abs(wx - b.x) < b.w * .6 && y < b.y && y > b.y - b.h - b.w * .35) {
+    if (barnOpen() > 0) return true;
+    barnState.openAt = clock; horse.at = clock; sfx.whoosh();
+    setTimeout(() => say(night > .5 ? 'dormindo' : 'cavalo', night > .5 ? 'Shhh... está dormindo.' : 'O cavalo faz: hiiiiiii!'), 600);
+    if (mission?.id === 'cavalo') { say('achou', 'Achou! Muito bem!', true); completeMission(b.x, b.y - b.h); }
+    return true;
   }
-  tractor.x = x;
-  shadow(x, tractor.y, S * .45);
-  drawSprite('🚜', x, tractor.y + (driving ? Math.sin(t * 25) * 1.5 : 0), S * 1.1, driving ? 1 : -1);
-}
-
-let smoke = [];
-function drawBits(dt, t) {
-  for (const s of smoke) { s.t += dt; s.y -= 25 * dt; s.x -= 10 * dt; }
-  smoke = smoke.filter(s => s.t < 1.2);
-  for (const s of smoke) { ctx.fillStyle = `rgb(220 220 230 / ${.7 * (1 - s.t / 1.2)})`; circle(ctx, s.x, s.y, S * .1 * (1 + s.t * 2)); ctx.fill(); }
-  for (const h of hearty) { h.t += dt; h.y += h.vy * dt; }
-  hearty = hearty.filter(h => h.t < h.life);
-  for (const h of hearty) {
-    ctx.globalAlpha = 1 - h.t / h.life;
-    drawSprite('💖', h.x, h.y, S * .35, -1);
+  if (Math.abs(wx - tractorState.x) < S * .8 && Math.abs(y - (H * SPOT.tractor[1] - S * .4)) < S * .7) {
+    if (clock - tractorState.driveAt > DRIVE_TIME) { tractorState.driveAt = clock; sfx.boing(); say('trator', 'Olha o trator! Vrum, vrum!'); }
+    return true;
   }
-  for (const it of items) { it.t += dt; it.y -= 30 * dt; }
-  items = items.filter(it => it.t < 1.8);
-  for (const it of items) {
-    ctx.globalAlpha = Math.min(1, (1.8 - it.t) * 2);
-    drawSprite(it.e, it.x, it.y, S * .8 * easeOutBack(Math.min(it.t / .3, 1)), -1);
+  if (near(wX(SPOT.doghouse[0]), H * SPOT.doghouse[1] - S * .5, S * .8)) { tapAnimal(byId('cachorro')); return true; }
+  const fl = flowerSpots().find(([fx, fy]) => Math.abs(wx - fx) < S * 1.2 && Math.abs(y - fy) < S * .6);
+  if (fl) { flyers.push({ x: wx, y: fl[1] - S * .3, t: 0, seed: rand(0, TAU), vx: rand(-30, 30) }); sfx.chime(); return true; }
+  const [px, py, rx, ry] = SPOT.pond;
+  if (((wx - wX(px)) / wX(rx)) ** 2 + ((y - H * py) / (H * ry)) ** 2 < 1.3) {
+    ring(wx - camX, y, S * .6); sfx.splash();
+    hearts(wx, y, 1, '🐟');
+    return true;
   }
-  ctx.globalAlpha = 1;
-  // bichos dormindo soltam Zzz
-  if (night > .8 && Math.random() < dt * 1.5) { const a = pick(animals); zzz.push({ x: a.x, y: a.y - a.s * .7, t: 0 }); }
-  for (const z of zzz) { z.t += dt; z.y -= 18 * dt; }
-  zzz = zzz.filter(z => z.t < 2);
-  ctx.font = `700 ${Math.round(S * .35)}px ui-rounded, system-ui, sans-serif`;
-  ctx.textAlign = 'center';
-  for (const z of zzz) { ctx.fillStyle = `rgb(255 255 255 / ${1 - z.t / 2})`; ctx.fillText('z', z.x + Math.sin(z.t * 3) * 6, z.y); }
-}
-
-function drawPlot(p, t) {
-  ctx.fillStyle = '#7a4a2a';
-  ctx.beginPath(); ctx.ellipse(p.x, p.y, Math.min(W * .085, S * 1.1), S * .2, 0, 0, TAU); ctx.fill();
-  ctx.fillStyle = '#946038';
-  ctx.beginPath(); ctx.ellipse(p.x, p.y - S * .04, Math.min(W * .07, S * .9), S * .12, 0, 0, TAU); ctx.fill();
-  if (!p.stage) return;
-  const k = easeOutBack(clamp01((clock - p.at) / .4)), sway = Math.sin(t * 2 + p.x) * .08;
-  drawSprite(p.stage === 1 ? '🌱' : '🥕', p.x, p.y - S * .02, S * (p.stage === 1 ? .6 : .85) * k, -1, p.stage === 2 ? Math.PI + sway : sway);
-}
-
-function drawEgg(e, t) {
-  const wob = clock - e.wobbleAt < .4 ? Math.sin((clock - e.wobbleAt) * 40) * .25 : Math.sin(t * 3 + e.born) * .05;
-  const k = easeOutBack(clamp01((clock - e.born) / .35));
-  drawSprite('🥚', e.x, e.y, S * .55 * k, -1, wob);
-  if (e.cracks) {
-    ctx.strokeStyle = '#6b4a2a'; ctx.lineWidth = 1.6;
-    ctx.beginPath(); ctx.moveTo(e.x - S * .12, e.y - S * .3);
-    for (let i = 1; i <= e.cracks * 2; i++) ctx.lineTo(e.x - S * .12 + i * S * .05, e.y - S * .3 + (i % 2 ? -S * .05 : S * .03));
-    ctx.stroke();
-  }
-}
-
-function drawCarrots() {
-  for (const c of carrots) {
-    const p = clamp01(c.t / .8), x = c.x0 + (c.x1 - c.x0) * p, y = c.y0 + (c.y1 - c.y0) * p - Math.sin(p * Math.PI) * H * .12;
-    drawSprite('🥕', x, y, S * .7, -1, p * 8);
-  }
-}
-
-// noite: céu escurece, lua no lugar do sol e estrelas piscando
-function drawNight(t) {
-  if (night < .01) return;
-  ctx.fillStyle = `rgb(20 24 70 / ${.55 * night})`;
-  ctx.fillRect(0, 0, W, H);
-  ctx.globalAlpha = night;
-  for (let i = 0; i < 30; i++) {
-    const x = (Math.sin(i * 91.7) * .5 + .5) * W, y = (Math.sin(i * 37.3) * .5 + .5) * H * .38;
-    ctx.fillStyle = `rgb(255 250 210 / ${.5 + .5 * Math.abs(Math.sin(t * 2 + i))})`;
-    circle(ctx, x, y, 1.2 + (i % 3) * .6); ctx.fill();
-  }
-  const r = sky.sunR;
-  const glow = ctx.createRadialGradient(sky.sunX, sky.sunY, r * .5, sky.sunX, sky.sunY, r * 2);
-  glow.addColorStop(0, 'rgb(255 250 220 / .35)'); glow.addColorStop(1, 'rgb(255 250 220 / 0)');
-  ctx.fillStyle = glow; circle(ctx, sky.sunX, sky.sunY, r * 2); ctx.fill();
-  ctx.fillStyle = '#fff6cc'; circle(ctx, sky.sunX, sky.sunY, r * 1.05); ctx.fill();
-  ctx.fillStyle = '#e8dca6';
-  for (const [dx, dy, k] of [[-.3, -.2, .2], [.25, .25, .14], [.35, -.35, .1]]) { circle(ctx, sky.sunX + dx * r, sky.sunY + dy * r, k * r); ctx.fill(); }
-  ctx.globalAlpha = 1;
+  return false;
 }
 
 // ---------- loop ----------
 function resize() {
   fitCanvas();
-  S = Math.min(W * .2, H * (W > H ? .17 : .13), 110);
-  buildSky(.42);
-  const bw = Math.min(W * .42, H * .24);
-  barn = { x: W * .24, y: H * .54, w: bw, openAt: barn?.openAt ?? -99 };
-  tractor = { bx: W * .86, x: W * .86, y: H * .475, driveAt: tractor?.driveAt ?? -99 };
-  const old = animals;
-  animals = ANIMALS.map((d, i) => {
-    const prev = old.find(o => o.id === d.id);
-    return { ...d, bx: d.at[0] * W, by: d.at[1] * H, x: d.at[0] * W, y: d.at[1] * H, s: S * d.size, dir: -1,
-      phase: i * 1.7, hopAt: prev?.hopAt ?? -9, taps: prev?.taps ?? 0, mudAt: prev?.mudAt ?? -99 };
-  });
-  plots = PLOTS.map((x, i) => ({ x: x * W, y: PLOT_Y * H, stage: plots[i]?.stage ?? 0, at: plots[i]?.at ?? -9 }));
-  eggs = []; chicks = chicks.map(c => ({ ...c, x: W * .8, y: H * .8 }));
-  farm = buildFarm();
+  const portrait = H >= W;
+  S = Math.min(W * .21, H * (portrait ? .115 : .16), 110);
+  worldW = Math.round(W * (portrait ? WORLD_PORTRAIT : WORLD_LANDSCAPE));
+  camX = clampCam(camX);
+  sky = { ground: HORIZON };      // passarinho do cenário comum usa isso
+  land = buildLand();
+  buildSkyBits();
+  plots = buildPlots();
+  placeAnimals();
 }
 
 function update(dt, t) {
   frameDt = dt;
-  updateSky(dt);
+  if (!press) {
+    if (camGoal !== null) { camX += (camGoal - camX) * Math.min(dt * 4, 1); if (Math.abs(camGoal - camX) < 1) camGoal = null; }
+    else if (Math.abs(vel) > 5) { camX = clampCam(camX + vel * dt); vel *= Math.pow(.05, dt); }
+  }
+  updateFarmSky(dt);
+  updateBirds(dt);
   updateAnimals(dt, t);
-  night += ((isNight ? 1 : 0) - night) * Math.min(dt * 1.5, 1);
+  if (started && night < .5) {
+    if (!mission && clock > nextMissionAt) newMission();
+    else if (mission && clock - mission.saidAt > MISSION_REPEAT) sayMission();
+  }
+  if (started && !pannedOnce && clock - lastTap > 25) { pannedOnce = true; say('arrasta', 'Arraste pro lado pra ver mais da fazenda!', true); }
   updateMeter(dt);
 }
 
-function render(t) {
-  drawSkyBack(t);
-  drawHills();
+function drawWorld(t) {
+  ctx.save();
+  ctx.translate(-camX, 0);
+  drawMill(frameDt);
+  ctx.drawImage(land, camX * DPR, 0, W * DPR, H * DPR, camX, 0, W, H);
   drawTractor(t);
-  drawBarn(t);
-  ctx.drawImage(farm, 0, 0, W, H);
+  drawTree(t);
+  drawBarn();
   for (const p of plots) drawPlot(p, t);
-  // quem está mais embaixo na tela fica na frente
+  drawFallen(frameDt);
   const things = [
     ...animals.map(a => ({ y: a.y, draw: () => drawAnimal(a, t) })),
     ...eggs.map(e => ({ y: e.y, draw: () => drawEgg(e, t) })),
-    ...chicks.map(c => ({ y: c.y, draw: () => { shadow(c.x, c.y, S * .18); drawSprite(clock - c.born < 1.2 ? '🐣' : '🐥', c.x, c.y - hopOf(c, .4) * S * .3, S * .5, find('galinha').dir); } })),
+    ...chicks.map(c => ({ y: c.y, draw: () => drawChick(c, t) })),
+    { y: horse.y ?? 0, draw: () => drawHorse(t) },
   ].sort((a, b) => a.y - b.y);
   for (const th of things) th.draw();
-  drawCarrots();
-  drawNight(t);
+  drawThought(t);
   drawBits(frameDt, t);
+  ctx.restore();
+}
+
+// balão de pensamento com a comida que o bicho quer; na busca, brilho em volta depois de um tempo
+function drawThought(t) {
+  if (!mission || night > .5) return;
+  const tg = missionTarget();
+  if (!tg) return;
+  if (mission.type === 'find') {
+    if (clock - mission.at > MISSION_HINT && Math.random() < .3) sparkle(tg.x - camX + rand(-S * .6, S * .6), tg.y + rand(-S * .5, S * .5));
+    return;
+  }
+  const a = byId(mission.id), bob = Math.sin(t * 2.5) * S * .06, k = easeOutBack(clamp01((clock - mission.at) / .4));
+  const cx = a.x + a.s * .45, cy = a.y - a.s * 1.35 + bob, r = S * .42 * k;
+  ctx.fillStyle = '#fff'; ctx.shadowColor = 'rgb(40 80 30 / .25)'; ctx.shadowBlur = 10;
+  circle(ctx, a.x + a.s * .15, a.y - a.s * .9, r * .18); ctx.fill();
+  circle(ctx, a.x + a.s * .28, a.y - a.s * 1.05, r * .28); ctx.fill();
+  circle(ctx, cx, cy, r); ctx.fill();
+  ctx.shadowBlur = 0;
+  drawSprite(FEEDS[mission.id], cx, cy + r * .55, r * 1.4);
+}
+
+function drawArrow(t) {
+  const a = arrowInfo();
+  if (!a) return;
+  const bob = Math.sin(t * 6) * S * .12 * (a.right ? 1 : -1);
+  ctx.fillStyle = 'rgb(255 255 255 / .85)';
+  circle(ctx, a.x + bob, a.y, S * .5); ctx.fill();
+  drawSprite('👉', a.x + bob, a.y + S * .3, S * .6, !a.right);
+}
+
+// antes de arrastar a primeira vez: setinha na borda mostrando que tem mais fazenda
+function drawEdgeHint(t) {
+  if (pannedOnce || !started || camX >= maxCam() - 5) return;
+  const k = .5 + .5 * Math.sin(t * 4);
+  ctx.fillStyle = `rgb(255 255 255 / ${.4 + .4 * k})`;
+  ctx.beginPath(); ctx.moveTo(W - 12, H * .7); ctx.lineTo(W - 34 - k * 6, H * .7 - 22); ctx.lineTo(W - 34 - k * 6, H * .7 + 22); ctx.fill();
+}
+
+function render(t) {
+  drawFarmSky(t);
+  drawBirds(t);
+  drawWorld(t);
+  drawRain();
+  drawNightTint();
+  drawArrow(t);
+  drawEdgeHint(t);
   drawRings();
   if (started) drawMeter();
   drawParticles();
@@ -458,6 +319,9 @@ function render(t) {
 }
 
 boot({
-  resize, update, render, onTap, onBird: spawnBird,
-  onStart: () => { say('vamos', 'Vamos visitar a fazendinha? Toque nos bichinhos!'); },
+  resize, update, render, onTap, onMove, onUp, onBird: spawnBird,
+  onStart: () => {
+    say('vamos', 'Vamos visitar a fazendinha? Toque nos bichinhos!');
+    nextMissionAt = clock + 6;
+  },
 });
