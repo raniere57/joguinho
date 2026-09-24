@@ -1,5 +1,5 @@
 // rede primeiro (sempre a versão nova quando tem internet), cache quando está offline
-const CACHE = 'joguinhos-v13';
+const CACHE = 'joguinhos-v14';
 const CORE = ['./', 'index.html', 'manifest.json', 'icon.svg', 'comum/ui.css', 'comum/base.js', 'comum/efeitos.js', 'comum/som.js', 'comum/cenario.js', 'comum/medidor.js', 'comum/ui.js', 'bolhinhas/', 'bolhinhas/game.js', 'esconde/', 'esconde/game.js', 'cuidar/', 'cuidar/game.js', 'bolo/', 'bolo/game.js', 'colorir/', 'colorir/desenhos.js', 'colorir/vida.js', 'colorir/game.js', 'fazenda/', 'fazenda/mundo.js', 'fazenda/bichos.js', 'fazenda/game.js'];
 
 self.addEventListener('install', e => {
