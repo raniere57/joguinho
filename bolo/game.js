@@ -24,8 +24,10 @@ const LAYERS = 3, TOPPING_GOAL = 10, MAX_TOPPINGS = 30, MAX_CANDLES = 5, BITES =
 const HINT_AFTER = 6;         // segundos parada até a mãozinha aparecer
 const REPEAT_AFTER = 13;      // ...e até a tia repetir o que fazer
 const CANDLE_WAIT = 4;        // sem pôr mais velinhas por esse tempo = hora de acender
-const BLOW_LEVEL = .12;       // volume do microfone que conta como sopro
-const BLOW_HOLD = .18;        // ...sustentado por esse tempo (fala e barulho curto não apagam)
+const BLOW_MIN = .03;         // volume mínimo do microfone que conta como sopro (criança sopra fraquinho)
+const BLOW_OVER_FLOOR = 2.5;  // ...ou tantas vezes o barulho do ambiente, o que for maior
+const FLOOR_MAX = .03;        // teto do barulho de fundo medido (a voz da tia não pode deixar surdo)
+const BLOW_HOLD = .07;        // sopro curtinho já conta
 const MIC_GRACE = 1.5;        // não escuta enquanto a tia fala "assopra"
 const STAGE_LINE = {
   massa: ['massa', 'Escolha o sabor do bolo!'],
@@ -237,7 +239,7 @@ function putOut(list) {
 // microfone: assoprar de verdade apaga as velinhas (tocar nas chamas continua valendo).
 // Só fica ligado durante o "assoprar": no iPhone o microfone aberto muda o jeito do som sair.
 const mic = {
-  stream: null, analyser: null, buf: null, denied: false,
+  stream: null, analyser: null, buf: null, denied: false, floor: .01,
   async start() {
     if (this.stream || this.denied || !navigator.mediaDevices?.getUserMedia || !sfx.ctx) return;
     setSession('play-and-record');
@@ -274,10 +276,12 @@ function setSession(type) { try { if (navigator.audioSession) navigator.audioSes
 
 // sopro = barulho forte e contínuo; cada pedacinho de sopro apaga mais uma velinha
 function updateBlowing(dt) {
-  const lvl = clock - stageAt > MIC_GRACE ? mic.level() : 0;
-  wind += (Math.min(lvl / BLOW_LEVEL, 1.5) - wind) * Math.min(dt * 12, 1);
-  blowTime = lvl > BLOW_LEVEL ? blowTime + dt : Math.max(0, blowTime - dt * 2);
-  if (blowTime > BLOW_HOLD && clock - lastBlowOut > .2) {
+  const raw = mic.level(), thr = Math.max(BLOW_MIN, mic.floor * BLOW_OVER_FLOOR);
+  if (raw < thr) mic.floor = Math.min(FLOOR_MAX, mic.floor + (raw - mic.floor) * Math.min(dt * .8, 1));   // aprende o silêncio da sala
+  const lvl = clock - stageAt > MIC_GRACE ? raw : 0;
+  wind += (Math.min(lvl / thr, 1.5) - wind) * Math.min(dt * 12, 1);
+  blowTime = lvl > thr ? blowTime + dt : Math.max(0, blowTime - dt);
+  if (blowTime > BLOW_HOLD && clock - lastBlowOut > .15) {
     lastBlowOut = clock;
     const lit = cake.candles.filter(c => !c.out);
     if (lit.length) putOut([pick(lit)]);

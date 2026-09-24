@@ -111,12 +111,13 @@ function showPanBtns() {
 
 function handleTap(x, y) {
   lastTap = clock;
-  if (tapSky(x, y)) return;
+  // da frente pra trás: seta, fazenda (bichos, celeiro, árvore...), passarinho, sol/lua e só então as nuvens
   if (tapArrow(x, y)) return;
+  if (tapWorld(x + camX, y)) return;
   if (tapFarmBird(x, y)) return;
+  if (tapSky(x, y)) return;
   const cloud = tapCloud(x, y);
   if (cloud) { if (cloud.grew) say('chuva', 'Choveu! A horta cresceu!'); return; }
-  if (tapWorld(x + camX, y)) return;
   sfx.bell(); ring(x, y, R * .3); burst(x, y, R * .3, rand(0, 360), 6);
 }
 
