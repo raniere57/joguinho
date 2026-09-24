@@ -105,7 +105,9 @@
   .game:nth-child(2) { animation-delay: .12s, .9s; }
   .game.coral .go { background: radial-gradient(ellipse 30% 18% at 36% 24%, rgb(255 255 255 / .9), transparent), radial-gradient(circle at 50% 55%, #ffab7a, #ff6a4d); box-shadow: 0 .8vmin 0 #d4553a, 0 1.6vmin 3vmin var(--shadow); }
   .game:nth-child(3) { animation-delay: .24s, 1.3s; }
+  .game.green .go { background: radial-gradient(ellipse 30% 18% at 36% 24%, rgb(255 255 255 / .9), transparent), radial-gradient(circle at 50% 55%, #7ee0b0, #33b87a); box-shadow: 0 .8vmin 0 #218a58, 0 1.6vmin 3vmin var(--shadow); }
   .game:nth-child(4) { animation-delay: .36s, 1.7s; }
+  .game:nth-child(5) { animation-delay: .48s, 2.1s; }
   .game .go svg { width: 55%; fill: #fff; margin-left: 8%; }
   @keyframes breathe { 50% { transform: scale(1.1) rotate(-4deg); } }
   @keyframes pop-in { from { opacity: 0; transform: scale(.5) translateY(6vmin); } }
@@ -119,12 +121,12 @@
   .game .label { font-size: clamp(.95rem, 4.3vmin, 1.8rem); color: var(--ink); white-space: nowrap; }
   /* celular deitado: os quatro numa linha só */
   @media (orientation: landscape) {
-    .game { --size: min(38vmin, 240px); }
-    .game .label { font-size: clamp(.8rem, 3.8vmin, 1.6rem); }
+    .game { --size: min(29vmin, 220px); padding: 3vmin 3vmin 2.5vmin; }
+    .game .label { font-size: clamp(.7rem, 3.2vmin, 1.5rem); }
   }
   /* celular em pé: dois cartões por linha */
   @media (orientation: portrait) {
-    .game { --size: 36vmin; padding: 3vmin 3vmin 2.5vmin; border-radius: 10vmin; }
+    .game { --size: min(36vmin, 15.5vh); padding: 3vmin 3vmin 2.5vmin; border-radius: 10vmin; }
     .game .label { font-size: clamp(.8rem, 3.7vmin, 1.8rem); }
     .game .go { top: -2vmin; bottom: auto; width: calc(var(--size) * .3); }
   }
@@ -271,6 +273,16 @@
         <g class="bob b3"><text x="30" y="60" font-size="30" text-anchor="middle">🎉</text></g>
       </svg>
       <span class="label">Parabéns</span>
+      <span class="go" aria-hidden="true"><svg viewBox="0 0 100 100"><path d="M30 22c0-5 5-8 9-5l38 26c4 3 4 9 0 12L39 83c-4 3-9 0-9-5Z"/></svg></span>
+    </a>
+    <a class="game green" href="colorir/" aria-label="Colorir">
+      <svg viewBox="0 0 200 170" aria-hidden="true">
+        <ellipse cx="100" cy="158" rx="62" ry="10" fill="#3b2a55" opacity=".12"/>
+        <g class="bob"><text x="96" y="140" font-size="100" text-anchor="middle">🎨</text></g>
+        <g class="bob b2"><text x="168" y="64" font-size="36" text-anchor="middle">🖍️</text></g>
+        <g class="bob b3"><text x="32" y="58" font-size="30" text-anchor="middle">🌈</text></g>
+      </svg>
+      <span class="label">Colorir</span>
       <span class="go" aria-hidden="true"><svg viewBox="0 0 100 100"><path d="M30 22c0-5 5-8 9-5l38 26c4 3 4 9 0 12L39 83c-4 3-9 0-9-5Z"/></svg></span>
     </a>
   </nav>

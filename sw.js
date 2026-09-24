@@ -1,6 +1,6 @@
 // rede primeiro (sempre a versão nova quando tem internet), cache quando está offline
-const CACHE = 'joguinhos-v8';
-const CORE = ['./', 'index.html', 'manifest.json', 'icon.svg', 'comum/ui.css', 'comum/base.js', 'comum/efeitos.js', 'comum/som.js', 'comum/cenario.js', 'comum/medidor.js', 'comum/ui.js', 'bolhinhas/', 'bolhinhas/game.js', 'esconde/', 'esconde/game.js', 'cuidar/', 'cuidar/game.js', 'bolo/', 'bolo/game.js'];
+const CACHE = 'joguinhos-v9';
+const CORE = ['./', 'index.html', 'manifest.json', 'icon.svg', 'comum/ui.css', 'comum/base.js', 'comum/efeitos.js', 'comum/som.js', 'comum/cenario.js', 'comum/medidor.js', 'comum/ui.js', 'bolhinhas/', 'bolhinhas/game.js', 'esconde/', 'esconde/game.js', 'cuidar/', 'cuidar/game.js', 'bolo/', 'bolo/game.js', 'colorir/', 'colorir/game.js'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)).catch(() => {}));
