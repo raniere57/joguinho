@@ -45,19 +45,47 @@
   .tray button.rainbow { --c: conic-gradient(#ff4d4d, #ff9a3c, #ffd93b, #5cd65c, #4da6ff, #a066ff, #ff7ac8, #ff4d4d); }
   .tray button:active { transform: scale(.88); }
   .tray button.on { transform: scale(1.14); box-shadow: inset 0 -5px 0 rgb(0 0 0 / .14), 0 0 0 4px #fff, 0 0 0 7px #3a2e4a, 0 6px 14px rgb(30 60 50 / .3); }
-  /* próximo desenho */
-  .next {
-    position: fixed; z-index: 1; width: 76px; aspect-ratio: 1; border-radius: 50%;
-    display: grid; place-items: center;
-    background: radial-gradient(ellipse 30% 18% at 36% 24%, rgb(255 255 255 / .9), transparent), radial-gradient(circle at 50% 55%, #7ee0b0, #33b87a);
-    box-shadow: 0 6px 0 #218a58, 0 10px 22px rgb(30 90 70 / .35);
-    animation: next-in .45s cubic-bezier(.34, 1.56, .64, 1) both, breathe 1.4s ease-in-out .45s infinite;
+  /* galeria de desenhos: rola com o dedo */
+  .gallery {
+    position: fixed; inset: 0; z-index: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y;
+    box-sizing: border-box; padding: calc(max(14px, env(safe-area-inset-top)) + 72px) 20px calc(28px + env(safe-area-inset-bottom));
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(min(38vw, 180px), 1fr)); gap: 20px; align-content: start;
+    opacity: 0; pointer-events: none; transition: opacity .25s ease;
+  }
+  .gallery.on { opacity: 1; pointer-events: auto; }
+  .card {
+    position: relative; aspect-ratio: 1; border-radius: 24px; touch-action: pan-y;
+    background: #fffdf8; transform: rotate(var(--r));
+    box-shadow: inset 0 0 0 1.5px #fff, 0 8px 20px rgb(30 70 60 / .18);
+    transition: transform .15s ease;
+  }
+  .gallery.on .card { animation: card-in .45s cubic-bezier(.34, 1.56, .64, 1) both; animation-delay: calc(var(--i) * .03s); }
+  .card canvas { position: static; width: 100%; height: 100%; display: block; border-radius: 24px; }
+  .card.done::after { content: '⭐'; position: absolute; right: -8px; top: -10px; font-size: 30px; filter: drop-shadow(0 2px 3px rgb(0 0 0 / .2)); }
+  .card:active { transform: scale(.93) rotate(var(--r)); }
+  @keyframes card-in { from { opacity: 0; transform: scale(.5) rotate(var(--r)); } }
+  /* voltar pra galeria (canto de cima) e ver o desenho vivo de novo */
+  .back {
+    position: fixed; z-index: 2;
+    top: max(14px, env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right));
+    width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center;
+    background: rgb(255 255 255 / .75);
+    box-shadow: inset 0 0 0 1.5px #fff, 0 4px 14px rgb(30 70 60 / .2);
     touch-action: manipulation;
   }
-  .next[hidden] { display: none; }
-  .next svg { width: 52%; fill: #fff; margin-left: 8%; }
-  .next:active { transform: scale(.9); }
-  @keyframes next-in { from { opacity: 0; transform: scale(.3) rotate(-30deg); } }
+  .back svg { width: 56%; fill: #33b87a; }
+  .back.pulse { animation: breathe 1.3s ease-in-out infinite; box-shadow: inset 0 0 0 1.5px #fff, 0 0 0 5px rgb(51 184 122 / .35), 0 4px 14px rgb(30 70 60 / .2); }
+  .back[hidden], .magic[hidden] { display: none; }
+  .magic {
+    position: fixed; z-index: 1; width: 76px; aspect-ratio: 1; border-radius: 50%;
+    display: grid; place-items: center; font-size: 36px; line-height: 1;
+    background: radial-gradient(ellipse 30% 18% at 36% 24%, rgb(255 255 255 / .9), transparent), radial-gradient(circle at 50% 55%, #c9a4ff, #8a5cf0);
+    box-shadow: 0 6px 0 #6d45c0, 0 10px 22px rgb(80 40 140 / .35);
+    animation: magic-in .45s cubic-bezier(.34, 1.56, .64, 1) both, breathe 1.4s ease-in-out .45s infinite;
+    touch-action: manipulation;
+  }
+  .magic:active { transform: scale(.9); }
+  @keyframes magic-in { from { opacity: 0; transform: scale(.3) rotate(-30deg); } }
   @keyframes breathe { 50% { transform: scale(1.1) rotate(-4deg); } }
 </style>
 </head>
@@ -79,15 +107,19 @@
 </button>
 
 <nav class="tray" aria-label="Cores"></nav>
-<button class="next" type="button" aria-label="Próximo desenho" hidden>
-  <svg viewBox="0 0 100 100" aria-hidden="true"><path d="M30 22c0-5 5-8 9-5l38 26c4 3 4 9 0 12L39 83c-4 3-9 0-9-5Z"/></svg>
+<section class="gallery" aria-label="Desenhos"></section>
+<button class="back" type="button" aria-label="Escolher outro desenho" hidden>
+  <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2.2"/><rect x="13" y="3" width="8" height="8" rx="2.2"/><rect x="3" y="13" width="8" height="8" rx="2.2"/><rect x="13" y="13" width="8" height="8" rx="2.2"/></svg>
 </button>
+<button class="magic" type="button" aria-label="Ver o desenho ganhar vida" hidden>✨</button>
 
 <script src="../comum/base.js"></script>
 <script src="../comum/efeitos.js"></script>
 <script src="../comum/som.js"></script>
 <script src="../comum/medidor.js"></script>
 <script src="../comum/ui.js"></script>
+<script src="desenhos.js"></script>
+<script src="vida.js"></script>
 <script src="game.js"></script>
 </body>
 </html>
