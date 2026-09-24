@@ -214,6 +214,16 @@ const sfx = (() => {
       o.connect(lp); env(lp, t, .3, .3, .02);
       o.start(t); lfo.start(t); o.stop(t + .32); lfo.stop(t + .32);
     },
+    // palminhas: estalos curtos de ruído, meio fora de tempo como gente de verdade
+    clap(n = 3) {
+      if (!ac) return;
+      for (let i = 0; i < n; i++) {
+        const t = ac.currentTime + i * rand(.2, .26), s = ac.createBufferSource(), bp = ac.createBiquadFilter();
+        s.buffer = noise; bp.type = 'bandpass'; bp.frequency.value = rand(1000, 1500); bp.Q.value = .9;
+        s.connect(bp); env(bp, t, .35, .09, .002);
+        s.start(t); s.stop(t + .1);
+      }
+    },
     // caixinha de música: notas = [[freq ou 0, tempos], ...]; devolve duração e como parar
     musicBox(notes, beat = .5) {
       if (!ac) return { duration: notes.reduce((a, n) => a + n[1], 0) * beat, stop() {} };
