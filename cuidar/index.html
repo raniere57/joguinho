@@ -15,41 +15,78 @@
 <link rel="stylesheet" href="../comum/ui.css">
 <style>
   :root { --play-a: #c9a4ff; --play-b: #9a6cf0; --play-shadow: #6d45c0; }
-  /* barra de cuidados: botões grandes, sem texto */
+  /* barra de cuidados: botões grandes, sem texto; duas fileiras em pé, uma deitado */
   .tools {
-    position: fixed; left: 50%; bottom: max(16px, env(safe-area-inset-bottom)); z-index: 1;
-    transform: translateX(-50%); display: flex; gap: min(4vw, 22px);
-    padding: 10px; border-radius: 999px;
+    position: fixed; left: 50%; bottom: max(14px, env(safe-area-inset-bottom)); z-index: 1;
+    transform: translateX(-50%); display: grid; grid-template-columns: repeat(6, auto); justify-content: center;
+    gap: 8px; padding: 9px; border-radius: 30px;
     background: rgb(255 255 255 / .55);
     box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / .9), 0 8px 24px rgb(80 40 120 / .2);
     -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
     transition: opacity .3s ease, transform .3s ease;
   }
+  @media (orientation: landscape) { .tools { grid-template-columns: repeat(11, auto); } }
   .tools:not(.on) { opacity: 0; pointer-events: none; transform: translateX(-50%) translateY(30px); }
-  .tools.busy { opacity: .45; }
-  .tools button {
-    position: relative; width: min(17vw, 76px); aspect-ratio: 1; border-radius: 50%;
-    font-size: min(9vw, 40px); line-height: 1;
+  .tools.on.busy { opacity: .75; }
+  .tools button, .go-home {
+    position: relative; width: min(13vw, 60px); aspect-ratio: 1; border-radius: 50%;
+    font-size: min(7vw, 32px); line-height: 1; display: grid; place-items: center;
     background: radial-gradient(circle at 40% 30%, #fff, #f3eaff);
     box-shadow: 0 4px 0 #d9c6f5, 0 6px 14px rgb(80 40 120 / .18);
     transition: transform .12s ease;
     touch-action: manipulation;
   }
-  .tools button:active { transform: scale(.9) translateY(3px); box-shadow: 0 1px 0 #d9c6f5; }
+  @media (orientation: landscape) { .tools button { width: min(7vw, 56px); font-size: min(3.8vw, 30px); } }
+  .tools button svg { width: 62%; height: 62%; }
+  .tools button:active, .go-home:active { transform: scale(.9) translateY(3px); box-shadow: 0 1px 0 #d9c6f5; }
   /* o cuidado que a bebê está pedindo pisca, e a mãozinha aponta */
-  .tools button.wanted { animation: want 1s ease-in-out infinite; background: radial-gradient(circle at 40% 30%, #fff, #ffe08a); box-shadow: 0 4px 0 #f0b93a, 0 0 0 5px rgb(255 210 70 / .55), 0 6px 18px rgb(240 170 40 / .5); }
+  .tools button.wanted, .go-home.wanted { animation: want 1s ease-in-out infinite; background: radial-gradient(circle at 40% 30%, #fff, #ffe08a); box-shadow: 0 4px 0 #f0b93a, 0 0 0 5px rgb(255 210 70 / .55), 0 6px 18px rgb(240 170 40 / .5); }
   .tools button.wanted.hint::after {
-    content: '👆'; position: absolute; left: 50%; top: 100%; font-size: .8em;
+    content: '👆'; position: absolute; left: 50%; top: 100%; font-size: .8em; z-index: 2;
     transform: translateX(-30%); animation: point .7s ease-in-out infinite alternate;
   }
   @keyframes want { 50% { transform: scale(1.12) rotate(-6deg); } }
   @keyframes point { to { translate: 0 -10px; } }
+
+  /* voltar do parquinho */
+  .go-home {
+    position: fixed; z-index: 1; right: max(16px, env(safe-area-inset-right)); bottom: max(16px, env(safe-area-inset-bottom));
+    width: 72px; font-size: 38px; opacity: 0; pointer-events: none; transition: opacity .3s ease;
+  }
+  .go-home.on { opacity: 1; pointer-events: auto; }
+
+  /* guarda-roupa */
+  .closet {
+    position: fixed; z-index: 1; left: 50%; bottom: max(14px, env(safe-area-inset-bottom));
+    transform: translateX(-50%); display: flex; flex-direction: column; gap: 7px; padding: 10px; border-radius: 28px;
+    background: rgb(255 255 255 / .7);
+    box-shadow: inset 0 0 0 1.5px #fff, 0 8px 24px rgb(80 40 120 / .22);
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    transition: opacity .3s ease, transform .35s cubic-bezier(.34, 1.56, .64, 1);
+  }
+  .closet:not(.on) { opacity: 0; pointer-events: none; transform: translateX(-50%) translateY(40px); }
+  @media (orientation: landscape) {
+    .closet { left: auto; right: max(14px, env(safe-area-inset-right)); bottom: auto; top: 50%; transform: translateY(-50%); }
+    .closet:not(.on) { transform: translate(40px, -50%); }
+  }
+  .closet .row { display: flex; gap: 6px; }
+  .closet .row button {
+    width: 48px; height: 48px; border-radius: 16px; display: grid; place-items: center;
+    background: #fff; box-shadow: 0 3px 0 #e6daf7; transition: transform .12s ease; touch-action: manipulation;
+  }
+  .closet .row button.on { box-shadow: 0 0 0 3px #b77cff, 0 3px 0 #e6daf7; transform: scale(1.06); }
+  .closet .row button:active { transform: scale(.9); }
+  .closet .ok {
+    height: 46px; border-radius: 23px; font: 800 26px/1 ui-rounded, "SF Pro Rounded", system-ui, sans-serif; color: #fff;
+    background: linear-gradient(#7fdc6a, #4caf3c); box-shadow: 0 4px 0 #357d2a; touch-action: manipulation;
+  }
+  .closet .ok:active { transform: translateY(3px); box-shadow: 0 1px 0 #357d2a; }
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
 
-<button id="home" aria-label="Voltar ao menu (segure)">
+<button id="home" aria-label="Voltar ao menu">
   <svg viewBox="0 0 48 48" aria-hidden="true">
     <circle class="track" cx="24" cy="24" r="21"/>
     <circle class="ring" cx="24" cy="24" r="21"/>
@@ -65,16 +102,31 @@
 
 <nav class="tools" aria-label="Cuidados">
   <button type="button" data-care="fome" aria-label="Mamadeira">🍼</button>
+  <button type="button" data-care="papinha" aria-label="Papinha">🥣</button>
   <button type="button" data-care="banho" aria-label="Banho">🛁</button>
+  <button type="button" data-care="fralda" aria-label="Trocar a fralda"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M4 11h32c0 13-7 21-16 21S4 24 4 11Z" fill="#fff" stroke="#8fcff5" stroke-width="3" stroke-linejoin="round"/><rect x="2" y="8" width="8" height="6" rx="2" fill="#8fd0ff"/><rect x="30" y="8" width="8" height="6" rx="2" fill="#8fd0ff"/><path d="m20 17 1.5 3 3.3.4-2.4 2.3.6 3.3-3-1.6-3 1.6.6-3.3-2.4-2.3 3.3-.4Z" fill="#ffc2dc"/></svg></button>
+  <button type="button" data-care="dentinho" aria-label="Escovar os dentes">🪥</button>
+  <button type="button" data-care="dodoi" aria-label="Curativo">🩹</button>
+  <button type="button" data-care="frio" aria-label="Agasalhar">🧣</button>
   <button type="button" data-care="sono" aria-label="Dormir">🌙</button>
   <button type="button" data-care="brincar" aria-label="Brincar">🎈</button>
+  <button type="button" data-care="roupa" aria-label="Trocar de roupa">👗</button>
+  <button type="button" data-care="passeio" aria-label="Passear no parquinho">🛝</button>
 </nav>
+
+<div class="closet" aria-label="Guarda-roupa"></div>
+<button type="button" class="go-home" aria-label="Voltar para o quarto">🏡</button>
 
 <script src="../comum/base.js"></script>
 <script src="../comum/efeitos.js"></script>
 <script src="../comum/som.js"></script>
 <script src="../comum/medidor.js"></script>
 <script src="../comum/ui.js"></script>
+<script src="bebe.js"></script>
+<script src="quarto.js"></script>
+<script src="cuidados.js"></script>
+<script src="roupas.js"></script>
+<script src="parque.js"></script>
 <script src="game.js"></script>
 </body>
 </html>

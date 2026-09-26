@@ -215,6 +215,29 @@ const sfx = (() => {
       o.connect(lp); env(lp, t, .3, .3, .02);
       o.start(t); lfo.start(t); o.stop(t + .32); lfo.stop(t + .32);
     },
+    // quá-quá de patinho: onda dente-de-serra passando por um filtro que fecha
+    quack() {
+      if (!ac) return;
+      for (let i = 0; i < 2; i++) {
+        const t = ac.currentTime + i * .16, o = ac.createOscillator(), bp = ac.createBiquadFilter();
+        o.type = 'sawtooth';
+        o.frequency.setValueAtTime(rand(420, 480), t);
+        o.frequency.exponentialRampToValueAtTime(260, t + .1);
+        bp.type = 'bandpass'; bp.Q.value = 3;
+        bp.frequency.setValueAtTime(1400, t);
+        bp.frequency.exponentialRampToValueAtTime(700, t + .1);
+        o.connect(bp); env(bp, t, .3, .12, .01);
+        o.start(t); o.stop(t + .14);
+      }
+    },
+    // escovinha: chiado curtinho e agudo
+    brush() {
+      if (!ac) return;
+      const t = ac.currentTime, n = ac.createBufferSource(), hp = ac.createBiquadFilter();
+      n.buffer = noise; hp.type = 'highpass'; hp.frequency.value = rand(3500, 5000);
+      n.connect(hp); env(hp, t, .12, .07, .005);
+      n.start(t); n.stop(t + .08);
+    },
     // palminhas: estalos curtos de ruído, meio fora de tempo como gente de verdade
     clap(n = 3) {
       if (!ac) return;
