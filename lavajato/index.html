@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#cfeaff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Joguinhos">
+<link rel="manifest" href="../manifest.json">
+<link rel="icon" href="../icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../icon-180.png">
+<title>Lava-jato</title>
+<link rel="stylesheet" href="../comum/ui.css">
+<style>
+  :root { --play-a: #7cc8ff; --play-b: #3fa9ff; --play-shadow: #2477c4; }
+  /* os 4 passos da lavagem: o de agora pulsa, os feitos ganham ✓ */
+  .steps {
+    position: fixed; left: 50%; bottom: max(12px, env(safe-area-inset-bottom)); z-index: 1;
+    transform: translateX(-50%); display: flex; gap: 10px; padding: 8px 12px; border-radius: 30px;
+    background: rgb(255 255 255 / .55);
+    box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / .9), 0 8px 24px rgb(30 80 140 / .2);
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    transition: opacity .3s ease, transform .3s ease;
+  }
+  .steps:not(.on) { opacity: 0; pointer-events: none; transform: translateX(-50%) translateY(30px); }
+  .steps span {
+    position: relative; width: min(12vw, 52px); aspect-ratio: 1; border-radius: 50%;
+    font-size: min(6.5vw, 28px); display: grid; place-items: center;
+    background: radial-gradient(circle at 40% 30%, #fff, #e6f3ff);
+    box-shadow: 0 3px 0 #bcdcf5; opacity: .55; transition: opacity .3s ease;
+  }
+  .steps .now { opacity: 1; animation: now 1s ease-in-out infinite; background: radial-gradient(circle at 40% 30%, #fff, #ffe08a); box-shadow: 0 3px 0 #f0b93a, 0 0 0 4px rgb(255 210 70 / .55); }
+  .steps .done { opacity: 1; }
+  .steps .done::after {
+    content: '✓'; position: absolute; right: -4px; bottom: -4px; width: 22px; height: 22px; border-radius: 50%;
+    display: grid; place-items: center; font: 800 15px/1 ui-rounded, system-ui, sans-serif; color: #fff;
+    background: #4caf3c; box-shadow: 0 0 0 2px #fff; animation: check .4s cubic-bezier(.34, 1.56, .64, 1);
+  }
+  @keyframes now { 50% { transform: scale(1.12) rotate(-6deg); } }
+  @keyframes check { from { transform: scale(0); } }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<button id="home" aria-label="Voltar ao menu">
+  <svg viewBox="0 0 48 48" aria-hidden="true">
+    <circle class="track" cx="24" cy="24" r="21"/>
+    <circle class="ring" cx="24" cy="24" r="21"/>
+    <path d="M13 24.5 24 15l11 9.5M16 22.5V34h6v-6h4v6h6V22.5"/>
+  </svg>
+</button>
+
+<button id="start" aria-label="Jogar">
+  <span class="play">
+    <svg viewBox="0 0 100 100" aria-hidden="true"><path d="M38 28c0-4 4-6 7-4l30 20c3 2 3 6 0 8L45 72c-3 2-7 0-7-4Z"/></svg>
+  </span>
+</button>
+
+<div class="steps" aria-label="Passos da lavagem">
+  <span role="button" aria-label="Água">🚿</span>
+  <span role="button" aria-label="Sabão">🧽</span>
+  <span role="button" aria-label="Enxaguar">💦</span>
+  <span role="button" aria-label="Secar">💨</span>
+</div>
+
+<script src="../comum/base.js"></script>
+<script src="../comum/efeitos.js"></script>
+<script src="../comum/som.js"></script>
+<script src="../comum/medidor.js"></script>
+<script src="../comum/ui.js"></script>
+<script src="veiculos.js"></script>
+<script src="lavagem.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

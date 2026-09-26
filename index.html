@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <!-- só as letras usadas: arquivo de fonte minúsculo -->
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600&text=JoguinhsBlaEcde-Crb%C3%AA%20P%C3%A9Fz&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600&text=JoguinhsBlaEcde-Crb%C3%AA%20P%C3%A9FzLvjt&display=swap">
 <title>Joguinhos</title>
 <style>
   @view-transition { navigation: auto; }
@@ -110,6 +110,8 @@
   .game.leaf .go { background: radial-gradient(ellipse 30% 18% at 36% 24%, rgb(255 255 255 / .9), transparent), radial-gradient(circle at 50% 55%, #9be07a, #4caf3c); box-shadow: 0 .8vmin 0 #357d2a, 0 1.6vmin 3vmin var(--shadow); }
   .game:nth-child(5) { animation-delay: .48s, 2.1s; }
   .game:nth-child(6) { animation-delay: .6s, 2.5s; }
+  .game.sky .go { background: radial-gradient(ellipse 30% 18% at 36% 24%, rgb(255 255 255 / .9), transparent), radial-gradient(circle at 50% 55%, #7cc8ff, #3fa9ff); box-shadow: 0 .8vmin 0 #2477c4, 0 1.6vmin 3vmin var(--shadow); }
+  .game:nth-child(7) { animation-delay: .72s, 2.9s; }
   .game .go svg { width: 55%; fill: #fff; margin-left: 8%; }
   @keyframes breathe { 50% { transform: scale(1.1) rotate(-4deg); } }
   @keyframes pop-in { from { opacity: 0; transform: scale(.5) translateY(6vmin); } }
@@ -123,12 +125,14 @@
   .game .label { font-size: clamp(.95rem, 4.3vmin, 1.8rem); color: var(--ink); white-space: nowrap; }
   /* celular deitado: os quatro numa linha só */
   @media (orientation: landscape) {
-    .game { --size: min(24vmin, 200px); padding: 2.6vmin 2.6vmin 2.2vmin; }
-    .game .label { font-size: clamp(.65rem, 2.9vmin, 1.4rem); }
+    .game { --size: min(16vmin, 150px); padding: 2.4vmin 2.4vmin 2vmin; }
+    .games { gap: 3.4vmin; flex-wrap: nowrap; }
+    .game .label { font-size: clamp(.65rem, 2.9vmin, 1.4rem); white-space: normal; text-align: center; line-height: 1.05; }
   }
   /* celular em pé: dois cartões por linha */
   @media (orientation: portrait) {
-    .game { --size: min(36vmin, 15.5vh); padding: 3vmin 3vmin 2.5vmin; border-radius: 10vmin; }
+    .game { --size: min(34vmin, 12.5vh); padding: 2.6vmin 3vmin 2.2vmin; border-radius: 10vmin; }
+    .games { margin-bottom: 6vh; gap: 4vmin 5vmin; }
     .game .label { font-size: clamp(.8rem, 3.7vmin, 1.8rem); }
     .game .go { top: -2vmin; bottom: auto; width: calc(var(--size) * .3); }
   }
@@ -295,6 +299,16 @@
         <g class="bob b3"><text x="34" y="66" font-size="36" text-anchor="middle">🐖</text></g>
       </svg>
       <span class="label">Fazendinha</span>
+      <span class="go" aria-hidden="true"><svg viewBox="0 0 100 100"><path d="M30 22c0-5 5-8 9-5l38 26c4 3 4 9 0 12L39 83c-4 3-9 0-9-5Z"/></svg></span>
+    </a>
+    <a class="game sky" href="lavajato/" aria-label="Lava-jato">
+      <svg viewBox="0 0 200 170" aria-hidden="true">
+        <ellipse cx="100" cy="158" rx="70" ry="10" fill="#3b2a55" opacity=".12"/>
+        <g class="bob"><text x="100" y="146" font-size="96" text-anchor="middle">🚗</text></g>
+        <g class="bob b2"><text x="168" y="66" font-size="38" text-anchor="middle">🫧</text></g>
+        <g class="bob b3"><text x="34" y="62" font-size="34" text-anchor="middle">💦</text></g>
+      </svg>
+      <span class="label">Lava-jato</span>
       <span class="go" aria-hidden="true"><svg viewBox="0 0 100 100"><path d="M30 22c0-5 5-8 9-5l38 26c4 3 4 9 0 12L39 83c-4 3-9 0-9-5Z"/></svg></span>
     </a>
   </nav>

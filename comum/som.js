@@ -238,6 +238,58 @@ const sfx = (() => {
       n.connect(hp); env(hp, t, .12, .07, .005);
       n.start(t); n.stop(t + .08);
     },
+    // buzina "bi-bi": duas notas quadradas abafadas
+    honk() {
+      if (!ac) return;
+      for (let i = 0; i < 2; i++) {
+        const t = ac.currentTime + i * .2, lp = ac.createBiquadFilter();
+        lp.type = 'lowpass'; lp.frequency.value = 1400; lp.connect(out);
+        for (const f of [392, 494]) {
+          const o = ac.createOscillator(), g = ac.createGain();
+          o.type = 'square'; o.frequency.value = f;
+          g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.09, t + .01); g.gain.setValueAtTime(.09, t + .12); g.gain.exponentialRampToValueAtTime(.0001, t + .16);
+          o.connect(g).connect(lp); o.start(t); o.stop(t + .17);
+        }
+      }
+    },
+    // motor ligando e indo embora
+    vroom() {
+      if (!ac) return;
+      const t = ac.currentTime, o = ac.createOscillator(), lp = ac.createBiquadFilter();
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(55, t); o.frequency.exponentialRampToValueAtTime(140, t + .5); o.frequency.exponentialRampToValueAtTime(90, t + 1.1);
+      lp.type = 'lowpass'; lp.frequency.value = 500;
+      o.connect(lp); env(lp, t, .22, 1.2, .08);
+      o.start(t); o.stop(t + 1.25);
+    },
+    // jatinho de água
+    spray() {
+      if (!ac) return;
+      const t = ac.currentTime, n = ac.createBufferSource(), bp = ac.createBiquadFilter();
+      n.buffer = noise; n.loop = true;
+      bp.type = 'bandpass'; bp.frequency.value = rand(2200, 3200); bp.Q.value = .7;
+      n.connect(bp); env(bp, t, .1, .14, .01);
+      n.start(t); n.stop(t + .15);
+    },
+    // ventinho do secador
+    blow() {
+      if (!ac) return;
+      const t = ac.currentTime, n = ac.createBufferSource(), lp = ac.createBiquadFilter();
+      n.buffer = noise; n.loop = true;
+      lp.type = 'lowpass'; lp.frequency.value = 900;
+      n.connect(lp); env(lp, t, .16, .16, .03);
+      n.start(t); n.stop(t + .17);
+    },
+    // sirene de bombeiro: sobe e desce
+    siren() {
+      if (!ac) return;
+      const t = ac.currentTime, o = ac.createOscillator(), lfo = ac.createOscillator(), depth = ac.createGain();
+      o.type = 'triangle'; o.frequency.value = 750;
+      lfo.frequency.value = 1.6; depth.gain.value = 180;
+      lfo.connect(depth).connect(o.frequency);
+      env(o, t, .12, 2.2, .1);
+      o.start(t); lfo.start(t); o.stop(t + 2.25); lfo.stop(t + 2.25);
+    },
     // palminhas: estalos curtos de ruído, meio fora de tempo como gente de verdade
     clap(n = 3) {
       if (!ac) return;
