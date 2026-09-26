@@ -323,6 +323,12 @@ const sfx = (() => {
       return { duration: t - start, stop() { for (const o of nodes) { try { o.stop(); } catch { /* já parou */ } } } };
     },
     // risadinha "hi hi hi" bem aguda, vinda de onde o ursinho está
+    // bolha subindo: "blub" que sobe rápido
+    blub(peak = .16) {
+      if (!ac) return;
+      const t = ac.currentTime, f = rand(260, 380);
+      osc('sine', f, f * 3, t, .13, peak);
+    },
     giggle(pan = 0) {
       if (!ac) return;
       const p = ac.createStereoPanner ? ac.createStereoPanner() : ac.createGain();

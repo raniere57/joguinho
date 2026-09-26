@@ -16,7 +16,7 @@ function frame(now) {
 let wakeLock = null;
 const keepAwake = () => navigator.wakeLock?.request('screen').then(l => { wakeLock = l; }).catch(() => {});
 
-// game = { resize, update, render, onTap(x, y), onStart(), onBird?, onMove?(x, y), onUp?(x, y), onCancel?() }
+// game = { resize, update, render, onTap(x, y), onStart(), onBird?, onAmbient?, onMove?(x, y), onUp?(x, y), onCancel?() }
 function boot(g) {
   game = g;
 
@@ -61,7 +61,7 @@ function boot(g) {
     setTimeout(() => startBtn.remove(), 400);
     sfx.init();
     sfx.startAmbient();
-    scheduleAmbient(game.onBird);
+    if (game.onAmbient) game.onAmbient(); else scheduleAmbient(game.onBird);   // fundo do mar não tem passarinho
     sfx.pop();
     lastTap = clock;
     ring(W / 2, H / 2, Math.min(W, H) * .23);
