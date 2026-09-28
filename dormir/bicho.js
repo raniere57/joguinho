@@ -116,6 +116,7 @@ function eyesOf(g, r, v, b) {
 function mouthOf(g, r, v) {
   g.strokeStyle = '#3a2a2a'; g.lineWidth = r * .06; g.lineCap = 'round';
   if (v.mouth === 'smile') { g.beginPath(); g.arc(0, r * .32, r * .15, .2 * Math.PI, .8 * Math.PI); g.stroke(); return; }
+  if (v.mouth === 'sad') { g.beginPath(); g.arc(0, r * .58, r * .14, 1.2 * Math.PI, 1.8 * Math.PI); g.stroke(); return; }
   const w = v.mouth === 'teeth' ? r * .32 : v.mouth === 'yawn' ? r * .14 : r * .1;
   const h = v.mouth === 'teeth' ? r * .24 : v.mouth === 'yawn' ? r * .22 : r * .1;
   const cy = r * .5;

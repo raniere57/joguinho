@@ -126,6 +126,8 @@
   .game:nth-child(13) { animation-delay: 1.44s, 5.3s; }
   .game.lemon .go { background: radial-gradient(ellipse 30% 18% at 36% 24%, rgb(255 255 255 / .9), transparent), radial-gradient(circle at 50% 55%, #b8f06b, #6cc42e); box-shadow: 0 .8vmin 0 #4a8f1c, 0 1.6vmin 3vmin var(--shadow); }
   .game:nth-child(14) { animation-delay: 1.56s, 5.7s; }
+  .game.mint .go { background: radial-gradient(ellipse 30% 18% at 36% 24%, rgb(255 255 255 / .9), transparent), radial-gradient(circle at 50% 55%, #7fe0c4, #2fb58f); box-shadow: 0 .8vmin 0 #1c7d62, 0 1.6vmin 3vmin var(--shadow); }
+  .game:nth-child(15) { animation-delay: 1.68s, 6.1s; }
   .game .go svg { width: 55%; fill: #fff; margin-left: 8%; }
   @keyframes breathe { 50% { transform: scale(1.1) rotate(-4deg); } }
   @keyframes pop-in { from { opacity: 0; transform: scale(.5) translateY(6vmin); } }
@@ -140,7 +142,7 @@
   /* celular deitado: duas linhas */
   @media (orientation: landscape) {
     .game { --size: min(14.5vmin, 128px); padding: 2.2vmin 2.2vmin 1.8vmin; }
-    .games { display: flex; flex-wrap: wrap; justify-content: center; max-width: 158vmin; gap: 3vmin 3.2vmin; margin-bottom: 4vh; }   /* 7 + 7 */
+    .games { display: flex; flex-wrap: wrap; justify-content: center; max-width: 176vmin; gap: 3vmin 3.2vmin; margin-bottom: 4vh; }   /* 8 + 7 */
     .game .label { font-size: clamp(.65rem, 2.9vmin, 1.4rem); white-space: normal; text-align: center; line-height: 1.05; }
   }
   /* celular em pé: quatro cartões por linha */
@@ -393,6 +395,16 @@
         <g class="bob b3"><text x="36" y="62" font-size="32" text-anchor="middle">🍌</text></g>
       </svg>
       <span class="label">Mercadinho</span>
+      <span class="go" aria-hidden="true"><svg viewBox="0 0 100 100"><path d="M30 22c0-5 5-8 9-5l38 26c4 3 4 9 0 12L39 83c-4 3-9 0-9-5Z"/></svg></span>
+    </a>
+    <a class="game mint" href="medico/" aria-label="Médico de bichinhos">
+      <svg viewBox="0 0 200 170" aria-hidden="true">
+        <ellipse cx="100" cy="158" rx="70" ry="10" fill="#1c5a46" opacity=".12"/>
+        <g class="bob"><text x="100" y="144" font-size="96" text-anchor="middle">🧸</text></g>
+        <g class="bob b2"><text x="166" y="66" font-size="40" text-anchor="middle">🩺</text></g>
+        <g class="bob b3"><text x="36" y="62" font-size="32" text-anchor="middle">🩹</text></g>
+      </svg>
+      <span class="label">Médico</span>
       <span class="go" aria-hidden="true"><svg viewBox="0 0 100 100"><path d="M30 22c0-5 5-8 9-5l38 26c4 3 4 9 0 12L39 83c-4 3-9 0-9-5Z"/></svg></span>
     </a>
   </nav>
