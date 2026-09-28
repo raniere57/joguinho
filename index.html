@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <!-- só as letras usadas: arquivo de fonte minúsculo -->
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600&text=JoguinhsBlaEcde-Crb%C3%AA%20P%C3%A9FzLvjtAq%C3%A1r&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600&text=JoguinhsBlaEcde-Crb%C3%AA%20P%C3%A9FzLvjtAq%C3%A1rSo&display=swap">
 <title>Joguinhos</title>
 <style>
   @view-transition { navigation: auto; }
@@ -114,6 +114,8 @@
   .game:nth-child(7) { animation-delay: .72s, 2.9s; }
   .game.sea .go { background: radial-gradient(ellipse 30% 18% at 36% 24%, rgb(255 255 255 / .9), transparent), radial-gradient(circle at 50% 55%, #6ee0e0, #22b3c4); box-shadow: 0 .8vmin 0 #12808f, 0 1.6vmin 3vmin var(--shadow); }
   .game:nth-child(8) { animation-delay: .84s, 3.3s; }
+  .game.candy .go { background: radial-gradient(ellipse 30% 18% at 36% 24%, rgb(255 255 255 / .9), transparent), radial-gradient(circle at 50% 55%, #ffb3cf, #ff7aa8); box-shadow: 0 .8vmin 0 #d9507f, 0 1.6vmin 3vmin var(--shadow); }
+  .game:nth-child(9) { animation-delay: .96s, 3.7s; }
   .game .go svg { width: 55%; fill: #fff; margin-left: 8%; }
   @keyframes breathe { 50% { transform: scale(1.1) rotate(-4deg); } }
   @keyframes pop-in { from { opacity: 0; transform: scale(.5) translateY(6vmin); } }
@@ -128,15 +130,15 @@
   /* celular deitado: os quatro numa linha só */
   @media (orientation: landscape) {
     .game { --size: min(17vmin, 150px); padding: 2.2vmin 2.4vmin 1.8vmin; }
-    .games { display: grid; grid-template-columns: repeat(4, auto); gap: 3vmin 5vmin; margin-bottom: 4vh; }
+    .games { display: flex; flex-wrap: wrap; justify-content: center; max-width: 128vmin; gap: 3vmin 4.5vmin; margin-bottom: 4vh; }   /* 5 + 4, centralizado */
     .game .label { font-size: clamp(.65rem, 2.9vmin, 1.4rem); white-space: normal; text-align: center; line-height: 1.05; }
   }
-  /* celular em pé: dois cartões por linha */
+  /* celular em pé: três cartões por linha */
   @media (orientation: portrait) {
-    .game { --size: min(34vmin, 12.5vh); padding: 2.6vmin 3vmin 2.2vmin; border-radius: 10vmin; }
-    .games { margin-bottom: 6vh; gap: 4vmin 5vmin; }
-    .game .label { font-size: clamp(.8rem, 3.7vmin, 1.8rem); }
-    .game .go { top: -2vmin; bottom: auto; width: calc(var(--size) * .3); }
+    .game { --size: min(23vmin, 11vh); padding: 2.2vmin 2vmin 2vmin; border-radius: 8vmin; }
+    .games { display: grid; grid-template-columns: repeat(3, auto); margin-bottom: 6vh; gap: 5vmin 3.5vmin; }
+    .game .label { font-size: clamp(.72rem, 3.4vmin, 1.6rem); white-space: normal; text-align: center; line-height: 1.05; }
+    .game .go { top: -2.5vmin; bottom: auto; right: -2.5vmin; width: calc(var(--size) * .34); }
   }
 
   @keyframes float { 50% { transform: translateY(-1.6vmin) rotate(-1deg); } }
@@ -321,6 +323,16 @@
         <g class="bob b3"><text x="34" y="62" font-size="34" text-anchor="middle">🫧</text></g>
       </svg>
       <span class="label">Aquário</span>
+      <span class="go" aria-hidden="true"><svg viewBox="0 0 100 100"><path d="M30 22c0-5 5-8 9-5l38 26c4 3 4 9 0 12L39 83c-4 3-9 0-9-5Z"/></svg></span>
+    </a>
+    <a class="game candy" href="sorveteria/" aria-label="Sorveteria">
+      <svg viewBox="0 0 200 170" aria-hidden="true">
+        <ellipse cx="100" cy="158" rx="70" ry="10" fill="#3b2a55" opacity=".12"/>
+        <g class="bob"><text x="100" y="146" font-size="100" text-anchor="middle">🍦</text></g>
+        <g class="bob b2"><text x="168" y="66" font-size="38" text-anchor="middle">🍒</text></g>
+        <g class="bob b3"><text x="34" y="62" font-size="34" text-anchor="middle">🐻</text></g>
+      </svg>
+      <span class="label">Sorveteria</span>
       <span class="go" aria-hidden="true"><svg viewBox="0 0 100 100"><path d="M30 22c0-5 5-8 9-5l38 26c4 3 4 9 0 12L39 83c-4 3-9 0-9-5Z"/></svg></span>
     </a>
   </nav>
