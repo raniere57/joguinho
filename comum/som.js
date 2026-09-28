@@ -323,6 +323,19 @@ const sfx = (() => {
       return { duration: t - start, stop() { for (const o of nodes) { try { o.stop(); } catch { /* já parou */ } } } };
     },
     // risadinha "hi hi hi" bem aguda, vinda de onde o ursinho está
+    // corujinha: "uh-uuh" grave e macio
+    hoot() {
+      if (!ac) return;
+      const t = ac.currentTime;
+      osc('sine', 420, 380, t, .28, .18);
+      osc('sine', 400, 340, t + .38, .45, .18);
+    },
+    // interruptor: tec
+    click() {
+      if (!ac) return;
+      const t = ac.currentTime;
+      osc('square', 1800, 900, t, .03, .08);
+    },
     // bolha subindo: "blub" que sobe rápido
     blub(peak = .16) {
       if (!ac) return;
