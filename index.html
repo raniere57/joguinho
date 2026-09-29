@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <!-- só as letras usadas: arquivo de fonte minúsculo -->
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600&text=JoguinhsBlaEcde-Crb%C3%AA%20P%C3%A9FzLvjtAq%C3%A1rSoHM&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600&text=JoguinhsBlaEcde-Crb%C3%AA%20P%C3%A9FzLvjtAq%C3%A1rSoHM%C3%A3&display=swap">
 <title>Joguinhos</title>
 <style>
   @view-transition { navigation: auto; }
@@ -128,6 +128,8 @@
   .game:nth-child(14) { animation-delay: 1.56s, 5.7s; }
   .game.mint .go { background: radial-gradient(ellipse 30% 18% at 36% 24%, rgb(255 255 255 / .9), transparent), radial-gradient(circle at 50% 55%, #7fe0c4, #2fb58f); box-shadow: 0 .8vmin 0 #1c7d62, 0 1.6vmin 3vmin var(--shadow); }
   .game:nth-child(15) { animation-delay: 1.68s, 6.1s; }
+  .game.berry .go { background: radial-gradient(ellipse 30% 18% at 36% 24%, rgb(255 255 255 / .9), transparent), radial-gradient(circle at 50% 55%, #ffa6d6, #f0589f); box-shadow: 0 .8vmin 0 #b8337a, 0 1.6vmin 3vmin var(--shadow); }
+  .game:nth-child(16) { animation-delay: 1.8s, 6.5s; }
   .game .go svg { width: 55%; fill: #fff; margin-left: 8%; }
   @keyframes breathe { 50% { transform: scale(1.1) rotate(-4deg); } }
   @keyframes pop-in { from { opacity: 0; transform: scale(.5) translateY(6vmin); } }
@@ -405,6 +407,16 @@
         <g class="bob b3"><text x="36" y="62" font-size="32" text-anchor="middle">🩹</text></g>
       </svg>
       <span class="label">Médico</span>
+      <span class="go" aria-hidden="true"><svg viewBox="0 0 100 100"><path d="M30 22c0-5 5-8 9-5l38 26c4 3 4 9 0 12L39 83c-4 3-9 0-9-5Z"/></svg></span>
+    </a>
+    <a class="game berry" href="salao/" aria-label="Salão de beleza">
+      <svg viewBox="0 0 200 170" aria-hidden="true">
+        <ellipse cx="100" cy="158" rx="70" ry="10" fill="#7a1f4f" opacity=".12"/>
+        <g class="bob"><text x="100" y="144" font-size="96" text-anchor="middle">💇</text></g>
+        <g class="bob b2"><text x="166" y="66" font-size="40" text-anchor="middle">🎀</text></g>
+        <g class="bob b3"><text x="36" y="62" font-size="32" text-anchor="middle">✂️</text></g>
+      </svg>
+      <span class="label">Salão</span>
       <span class="go" aria-hidden="true"><svg viewBox="0 0 100 100"><path d="M30 22c0-5 5-8 9-5l38 26c4 3 4 9 0 12L39 83c-4 3-9 0-9-5Z"/></svg></span>
     </a>
   </nav>
