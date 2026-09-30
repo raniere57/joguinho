@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <!-- só as letras usadas: arquivo de fonte minúsculo -->
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600&text=JoguinhsBlaEcde-Crb%C3%AA%20P%C3%A9FzLvjtAq%C3%A1rSoHM%C3%A3m&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600&text=JoguinhsBlaEcde-Crb%C3%AA%20P%C3%A9FzLvjtAq%C3%A1rSoHM%C3%A3mRp&display=swap">
 <title>Joguinhos</title>
 <style>
   @view-transition { navigation: auto; }
@@ -136,6 +136,8 @@
   .game:nth-child(18) { animation-delay: 2.04s, 7.3s; }
   .game.grape .go { background: radial-gradient(ellipse 30% 18% at 36% 24%, rgb(255 255 255 / .9), transparent), radial-gradient(circle at 50% 55%, #c9a2ff, #9b5cff); box-shadow: 0 .8vmin 0 #6a35c4, 0 1.6vmin 3vmin var(--shadow); }
   .game:nth-child(19) { animation-delay: 2.16s, 7.7s; }
+  .game.picnic .go { background: radial-gradient(ellipse 30% 18% at 36% 24%, rgb(255 255 255 / .9), transparent), radial-gradient(circle at 50% 55%, #ff9aa8, #f0506c); box-shadow: 0 .8vmin 0 #b8304a, 0 1.6vmin 3vmin var(--shadow); }
+  .game:nth-child(20) { animation-delay: 2.28s, 8.1s; }
   .game .go svg { width: 55%; fill: #fff; margin-left: 8%; }
   @keyframes breathe { 50% { transform: scale(1.1) rotate(-4deg); } }
   @keyframes pop-in { from { opacity: 0; transform: scale(.5) translateY(6vmin); } }
@@ -150,7 +152,7 @@
   /* celular deitado: duas linhas */
   @media (orientation: landscape) {
     .game { --size: min(13vmin, 128px, 7.6vw); padding: 2.2vmin 2vmin 1.8vmin; }
-    .games { display: flex; flex-wrap: wrap; justify-content: center; max-width: 200vmin; gap: 3vmin 3vmin; margin-bottom: 4vh; }   /* 10 + 9 */
+    .games { display: flex; flex-wrap: wrap; justify-content: center; max-width: 200vmin; gap: 3vmin 3vmin; margin-bottom: 4vh; }   /* 10 + 10 */
     .game .label { font-size: clamp(.65rem, 2.9vmin, 1.4rem); white-space: normal; text-align: center; line-height: 1.05; }
   }
   /* celular em pé: quatro cartões por linha */
@@ -454,6 +456,16 @@
         <g class="bob b3"><text x="36" y="62" font-size="32" text-anchor="middle">👑</text></g>
       </svg>
       <span class="label">Roupas</span>
+      <span class="go" aria-hidden="true"><svg viewBox="0 0 100 100"><path d="M30 22c0-5 5-8 9-5l38 26c4 3 4 9 0 12L39 83c-4 3-9 0-9-5Z"/></svg></span>
+    </a>
+    <a class="game picnic" href="piquenique/" aria-label="Piquenique">
+      <svg viewBox="0 0 200 170" aria-hidden="true">
+        <ellipse cx="100" cy="158" rx="70" ry="10" fill="#6a1a2a" opacity=".12"/>
+        <g class="bob"><text x="100" y="144" font-size="96" text-anchor="middle">🧺</text></g>
+        <g class="bob b2"><text x="166" y="66" font-size="40" text-anchor="middle">🫖</text></g>
+        <g class="bob b3"><text x="36" y="62" font-size="32" text-anchor="middle">🍓</text></g>
+      </svg>
+      <span class="label">Piquenique</span>
       <span class="go" aria-hidden="true"><svg viewBox="0 0 100 100"><path d="M30 22c0-5 5-8 9-5l38 26c4 3 4 9 0 12L39 83c-4 3-9 0-9-5Z"/></svg></span>
     </a>
   </nav>
