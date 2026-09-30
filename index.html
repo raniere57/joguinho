@@ -132,6 +132,8 @@
   .game:nth-child(16) { animation-delay: 1.8s, 6.5s; }
   .game.fire .go { background: radial-gradient(ellipse 30% 18% at 36% 24%, rgb(255 255 255 / .9), transparent), radial-gradient(circle at 50% 55%, #ff8a7a, #e63b2e); box-shadow: 0 .8vmin 0 #a8261c, 0 1.6vmin 3vmin var(--shadow); }
   .game:nth-child(17) { animation-delay: 1.92s, 6.9s; }
+  .game.glam .go { background: radial-gradient(ellipse 30% 18% at 36% 24%, rgb(255 255 255 / .9), transparent), radial-gradient(circle at 50% 55%, #ffb3de, #e864b4); box-shadow: 0 .8vmin 0 #a83a7c, 0 1.6vmin 3vmin var(--shadow); }
+  .game:nth-child(18) { animation-delay: 2.04s, 7.3s; }
   .game .go svg { width: 55%; fill: #fff; margin-left: 8%; }
   @keyframes breathe { 50% { transform: scale(1.1) rotate(-4deg); } }
   @keyframes pop-in { from { opacity: 0; transform: scale(.5) translateY(6vmin); } }
@@ -430,6 +432,16 @@
         <g class="bob b3"><text x="36" y="62" font-size="32" text-anchor="middle">💧</text></g>
       </svg>
       <span class="label">Bombeiros</span>
+      <span class="go" aria-hidden="true"><svg viewBox="0 0 100 100"><path d="M30 22c0-5 5-8 9-5l38 26c4 3 4 9 0 12L39 83c-4 3-9 0-9-5Z"/></svg></span>
+    </a>
+    <a class="game glam" href="maquiagem/" aria-label="Maquiagem">
+      <svg viewBox="0 0 200 170" aria-hidden="true">
+        <ellipse cx="100" cy="158" rx="70" ry="10" fill="#7a1f4f" opacity=".12"/>
+        <g class="bob"><text x="100" y="144" font-size="96" text-anchor="middle">💄</text></g>
+        <g class="bob b2"><text x="166" y="66" font-size="40" text-anchor="middle">✨</text></g>
+        <g class="bob b3"><text x="36" y="62" font-size="32" text-anchor="middle">🎀</text></g>
+      </svg>
+      <span class="label">Maquiagem</span>
       <span class="go" aria-hidden="true"><svg viewBox="0 0 100 100"><path d="M30 22c0-5 5-8 9-5l38 26c4 3 4 9 0 12L39 83c-4 3-9 0-9-5Z"/></svg></span>
     </a>
   </nav>
