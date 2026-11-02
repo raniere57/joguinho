@@ -14,10 +14,12 @@
 <title>Batalha</title>
 <link rel="stylesheet" href="../comum/ui.css">
 <style>
+  #c { background: transparent; }
   :root { --play-a: #8cc4ff; --play-b: #2f74e8; --play-shadow: #173f9a; }
 </style>
 </head>
 <body>
+<canvas id="gl"></canvas>
 <canvas id="c"></canvas>
 
 <button id="home" aria-label="Voltar ao menu">
@@ -39,9 +41,6 @@
 <script src="../comum/som.js"></script>
 <script src="../comum/medidor.js"></script>
 <script src="../comum/ui.js"></script>
-<script src="campo.js"></script>
-<script src="exercitos.js"></script>
-<script src="chefe.js"></script>
-<script src="game.js"></script>
+<script type="module" src="main.js"></script>
 </body>
 </html>
