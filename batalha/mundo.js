@@ -2,6 +2,7 @@
 // A lógica do jogo continua em coordenadas (u, v): u de -1 a 1 entre os muros, v = 0 nos canhões e 1 lá
 // no fundo. w(u, v) converte pro mundo: x = u * LW, z = -v * DEPTH.
 import * as THREE from '../comum/vendor/three.module.min.js';
+import { bake } from './modelos.js';
 
 export const LW = 6.4, DEPTH = 40;
 export const BELT_U = 1.37, BELT_W = .5, GATE_V = .22, WALL = [1, 1.1], OUTER = [1.64, 1.74];
@@ -119,6 +120,8 @@ function buildScenery() {
     const bx = d * wx(BELT_U), bw = wx(BELT_W);
     const tr = new THREE.Mesh(new THREE.BoxGeometry(bw * 1.08, .16, 100), beltMat); tr.position.set(bx, .08, -34); tr.receiveShadow = true; scene.add(tr);
   }
+  buildCastle(-45);
+  for (const d of [-1, 1]) for (const z of [6, -2]) flag(d * wx(OUTER[1] + .1), z, '#2f74e8', 1.1);   // bandeiras azuis perto dos capitães
   // pinheiros nevados (instanciados: cada parte é um desenho só pra todas as árvores)
   const spots = [];
   for (let i = 0; i < 70; i++) {
@@ -139,4 +142,50 @@ function buildScenery() {
     spots.forEach(([x, z, s], i) => { m.compose(new THREE.Vector3(x, y * s, z), q, new THREE.Vector3(s, s, s)); mesh.setMatrixAt(i, m); });
     mesh.castShadow = true; scene.add(mesh);
   }
+}
+
+// ---------- castelo vermelho no fim do corredor (de onde sai o exército) ----------
+export const flags = [];
+function flag(x, z, color, s = 1) {
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(.06 * s, .06 * s, 3.2 * s, 6), new THREE.MeshLambertMaterial({ color: '#d9dee6' }));
+  pole.position.set(x, 1.6 * s, z); pole.castShadow = true; scene.add(pole);
+  const geo = new THREE.PlaneGeometry(1.3 * s, .8 * s, 8, 1); geo.translate(.65 * s, 0, 0);
+  const cloth = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color, side: THREE.DoubleSide }));
+  cloth.position.set(x, 2.8 * s, z); scene.add(cloth);
+  const ball = new THREE.Mesh(new THREE.SphereGeometry(.13 * s, 8, 6), new THREE.MeshLambertMaterial({ color: '#ffd23f' })); ball.position.set(x, 3.25 * s, z); scene.add(ball);
+  flags.push({ cloth, base: geo.attributes.position.array.slice(), ph: Math.random() * 6 });
+}
+export function waveFlags(t) {
+  for (const f of flags) {
+    const p = f.cloth.geometry.attributes.position, b = f.base;
+    for (let i = 0; i < p.count; i++) { const x = b[i * 3]; p.array[i * 3 + 2] = Math.sin(t * 5 + x * 3 + f.ph) * x * .18; }
+    p.needsUpdate = true;
+  }
+}
+function buildCastle(z0) {
+  const stone = new THREE.MeshLambertMaterial({ color: '#9c4a52' }), stoneL = new THREE.MeshLambertMaterial({ color: '#b85a62' }), roof = new THREE.MeshLambertMaterial({ color: '#7a1620' }), dark = new THREE.MeshBasicMaterial({ color: '#2a0c12' });
+  const castle = new THREE.Group();
+  const add = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); castle.add(m); return m; };
+  const W = wx(OUTER[1]) + 1;
+  for (const d of [-1, 1]) {   // muralha dos dois lados do portão
+    add(new THREE.BoxGeometry(W - LW - .4, 4.2, 2), stone, d * (LW + .2 + (W - LW - .4) / 2), 2.1, z0);
+    for (let x = LW + .6; x < W; x += 1.1) add(new THREE.BoxGeometry(.6, .6, 2.1), stoneL, d * x, 4.5, z0);
+    // torres
+    const tx = d * (LW + 1.3);
+    add(new THREE.CylinderGeometry(1.5, 1.7, 7, 14), stone, tx, 3.5, z0 + .3);
+    add(new THREE.CylinderGeometry(1.75, 1.75, .5, 14), stoneL, tx, 7.2, z0 + .3);
+    add(new THREE.ConeGeometry(1.9, 3, 14), roof, tx, 8.95, z0 + .3);
+    add(new THREE.BoxGeometry(.4, .8, .1), dark, tx, 4.6, z0 + 1.85);
+    flag(tx, z0 + .3, '#d42126', 1.4);
+    const tx2 = d * (W - .8);
+    add(new THREE.CylinderGeometry(1.1, 1.3, 5.5, 12), stone, tx2, 2.75, z0);
+    add(new THREE.ConeGeometry(1.4, 2.4, 12), roof, tx2, 6.7, z0);
+  }
+  // arco do portão (o exército passa por baixo)
+  add(new THREE.BoxGeometry(LW * 2 + 1, 1.6, 2), stone, 0, 5.6, z0);
+  for (let x = -LW; x <= LW; x += 1.1) add(new THREE.BoxGeometry(.6, .6, 2.1), stoneL, x, 6.7, z0);
+  const banner = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 1.3), new THREE.MeshBasicMaterial({ map: canvasTex(256, 104, (g, w, h) => { g.fillStyle = '#d42126'; g.fillRect(0, 0, w, h); g.fillStyle = '#ffd23f'; g.fillRect(0, 0, w, 8); g.fillRect(0, h - 8, w, 8); strokeText(g, '☠', w / 2, h / 2 + 4, 74, '#ffd23f', '#5a0a10', .1); }) }));
+  banner.position.set(0, 5.6, z0 + 1.02); scene.add(banner);
+  scene.add(bake(castle));
+  const dark2 = new THREE.Mesh(new THREE.PlaneGeometry(LW * 2, 4.8), dark); dark2.position.set(0, 2.4, z0 - .5); scene.add(dark2);
 }

@@ -1,13 +1,13 @@
 // Batalha na neve (3D): junta lógica, modelos, partículas, câmera, som e o HUD desenhado no canvas 2D
 // por cima do WebGL.
 import * as THREE from '../comum/vendor/three.module.min.js';
-import { initWorld, resizeWorld, lowerQuality, renderer, scene, camera, baseCam, baseLook, wx, wz, LW, GATE_V, BELT_U, FONT } from './mundo.js';
-import { Troop, makeCannon, makeGate, makePile, setPlate, makeTiles, makeBoss } from './modelos.js';
+import { waveFlags, initWorld, resizeWorld, lowerQuality, renderer, scene, camera, baseCam, baseLook, wx, wz, LW, GATE_V, BELT_U, FONT } from './mundo.js';
+import { Troop, makeHero, makeGate, makePile, setPlate, makeTiles, makeBoss } from './modelos.js';
 import { Particles } from './efeitos3d.js';
 import { S, fx, startLevel, step, setPhase, colU, rowsOf, redAlive, cannonSpots, clusterHalf, RED_COLS, RED_DV, BELT_SPACING } from './logica.js';
 
 const VOZ = {
-  vamos: 'Arraste o dedo pra mirar o canhão!', canhao: 'Mais canhões!', super: 'Super canhão!',
+  vamos: 'Arraste o dedo pra guiar os seus soldados!', canhao: 'Mais capitães!', super: 'Capitão de ouro!',
   chefe: 'Cuidado! O chefão chegou!', vitoria: 'Vitória!', derrota: 'Ah, não! Tente de novo!',
 };
 loadVoices(Object.keys(VOZ));
@@ -17,17 +17,20 @@ const easeOutCubic = k => 1 - (1 - k) ** 3;
 const hash = (a, b) => { const x = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return x - Math.floor(x); };
 
 initWorld();
-const redTroop = new Troop(RED_COLS * 112, '#d8121c', '#ee2a2a', { crest: '#ffcf33' });
-const blueTroop = new Troop(2600, '#1f62e0', '#3f86f7', { crest: '#ffffff', tint: true });
+const redTroop = new Troop(RED_COLS * 112, { leg: '#7a0c14', body: '#d8121c', head: '#ff5a4f', helm: '#b30d16', crest: '#ffcf33' }, { eyes: true, face: 1 });
+const blueTroop = new Troop(2600, { leg: '#163f9a', body: '#1f62e0', head: '#5c9cff', helm: '#2f74e8', crest: '#ffffff' }, { tint: true, face: -1 });
 const smoke = new Particles(500), sparks = new Particles(400, { additive: true, core: .12 }), snowBits = new Particles(300, { core: .6 });
 const tiles1 = makeTiles('#2a8af0', '#1a5cb8', '+1', 80), tiles99 = makeTiles('#ffc928', '#c98800', '+99', 80);
-let gate = null, pileModels = [], cannons = [], cannonsGat = null, bossModel = null, ts = 1, slowUntil = 0, shake = 0, floats = [], dragged = false, button = null, lastPop = 0, lastBoom = 0, lastBrush = 0;
+let lastBad = 0, gates = [], pileModels = [], cannons = [], cannonsGat = null, bossModel = null, ts = 1, slowUntil = 0, shake = 0, floats = [], dragged = false, button = null, lastPop = 0, lastBoom = 0, lastBrush = 0;
 const ICE = [3.2, 1.9, 1.15], NORMAL = [1, 1, 1];
 
 // ---------- montagem da fase ----------
 function buildLevel() {
-  if (gate) scene.remove(gate);
-  gate = makeGate('x' + S.cfg.gate); gate.position.set(0, 0, wz(GATE_V)); scene.add(gate);
+  gates.forEach(g => scene.remove(g));
+  gates = S.gates.map((g, i) => {   // o "÷" vai um pouquinho atrás e mais baixo, o "x" que anda vai na frente
+    const m = makeGate((g.op === 'x' ? 'x' : '÷') + g.val, wx(g.half) * 2, g.op !== 'x');
+    m.position.set(wx(g.c), 0, wz(GATE_V) + (g.op === 'x' ? .5 : -.4) - i * .01); scene.add(m); return m;
+  });
   pileModels.forEach(m => scene.remove(m));
   pileModels = S.piles.map(p => { const m = makePile(p.reward); m.position.set(wx(p.side * BELT_U), 0, wz(GATE_V) + .4); m.scale.setScalar(1.7); scene.add(m); setPlate(m, p.hp); return m; });
   if (bossModel) { scene.remove(bossModel); bossModel = null; }
@@ -38,7 +41,7 @@ function syncCannons(force) {
   const want = S.player.n, gat = S.player.gat;
   if (!force && cannons.length === want && cannonsGat === gat) return;
   cannons.forEach(c => scene.remove(c));
-  cannons = Array.from({ length: want }, () => { const c = makeCannon(gat); scene.add(c); return c; });
+  cannons = Array.from({ length: want }, () => { const c = makeHero(gat); scene.add(c); return c; });
   for (const c of cannons) c.userData.dead = 0;
   cannonsGat = gat;
 }
@@ -53,16 +56,22 @@ fx.on('level', () => { buildLevel(); });
 fx.on('play', () => { if (S.level === 0) talk('vamos'); });
 fx.on('fire', (i, u, v) => {
   const c = cannons[i];
-  if (c) { c.userData.recoil = S.time; const p = c.position; sparks.add({ x: p.x, y: 1.7, z: p.z - 1.6, size: 1.4, life: .25, decay: 4, color: [1, .85, .45] }); smoke.add({ x: p.x, y: 1.7, z: p.z - 1.7, vy: .6, vz: -.8, size: .8, grow: 1.6, life: .7, decay: 1.6, drag: .05, a: .6 }); }
-  if (S.time - lastBoom > .07) { lastBoom = S.time; boom(.55); }
+  if (c) { c.userData.recoil = S.time; const p = c.position; sparks.add({ x: p.x + .6, y: 2.6, z: p.z - .6, size: .9, life: .2, decay: 5, color: S.player.gat ? [1, .85, .4] : [.6, .8, 1] }); }
+  if (S.time - lastBoom > .09) { lastBoom = S.time; whoosh(); }
 });
 fx.on('clash', (u, v) => {
   puffAt(u, v, 1, .7, .3);
+  if (Math.random() < .35) toss(Math.random() < .5 ? 'red' : 'blue', wx(u) + rand(-.3, .3), wz(v), .7);
   if (Math.random() < .3) sparks.add({ x: wx(u), y: .5, z: wz(v), vx: rand(-1, 1), vy: rand(1, 2), size: .35, life: .3, decay: 3.5, color: [1, .9, .7] });
 });
 fx.on('killed', () => { if (S.time - lastPop > .07) { lastPop = S.time; sfx.pop(); } });
-fx.on('gate', u => {
-  gate.userData.flash = S.time;
+fx.on('gateBad', (u, g) => {
+  const m = gates[S.gates.indexOf(g)]; if (m) m.userData.flash = S.time;
+  if (S.time - lastBad > .25) { lastBad = S.time; sfx.boing(); }
+  smoke.add({ x: wx(u), y: .5, z: wz(GATE_V), vy: 1, size: .8, grow: 1, life: .6, decay: 2, color: [1, .5, .5], a: .7 });
+});
+fx.on('gate', (u, g) => {
+  const m = gates[S.gates.indexOf(g)]; if (m) m.userData.flash = S.time;
   for (let i = 0; i < 6; i++) sparks.add({ x: wx(u) + rand(-1.2, 1.2), y: rand(.3, 1.3), z: wz(GATE_V) - .4, vx: rand(-1, 1), vy: rand(.5, 2), vz: -rand(.5, 2), size: rand(.3, .55), life: .6, decay: 2, color: [.75, .6, 1] });
 });
 fx.on('pileHit', (p, u) => {
@@ -92,7 +101,8 @@ fx.on('boss', () => { talk('chefe'); sfx.honk(); setTimeout(() => sfx.honk(), 26
 fx.on('bossHit', (b, u) => {
   for (let i = 0; i < 3; i++) sparks.add({ x: wx(u) + rand(-.4, .4), y: rand(1, 3.5), z: wz(b.v) + 1, vx: rand(-2, 2), vy: rand(1, 3), vz: rand(0, 2), size: rand(.3, .6), life: .4, decay: 2.5, color: [1, .6, .4] });
 });
-fx.on('sweep', (b, n) => {
+fx.on('sweep', (b, n, hit = []) => {
+  for (const un of hit.slice(0, 40)) toss('blue', wx(un.u), wz(un.v), 1.4);
   shake = Math.max(shake, .45); sfx.whoosh(); boom(1.5);
   const x = wx(b.u), z = wz(b.v) + 2.2;
   for (let i = 0; i < 14; i++) smoke.add({ x: x + rand(-3.5, 3.5), y: .3, z: z + rand(-1, 1), vx: rand(-2, 2), vy: rand(.3, 1), size: rand(1, 1.8), grow: 1.5, life: 1, decay: 1.3, drag: .06, a: .8 });
@@ -129,6 +139,16 @@ function boom(power = 1) {
   const g = ac.createGain(); g.gain.value = .2 * power;
   n.connect(lp).connect(g).connect(ac.destination); n.start(t);
 }
+function whoosh() {
+  const ac = sfx.ctx;
+  if (!ac) return;
+  const t = ac.currentTime, dur = .18, n = ac.createBufferSource(), buf = ac.createBuffer(1, ac.sampleRate * dur, ac.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.sin(i / d.length * Math.PI);
+  n.buffer = buf;
+  const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 1.2; bp.frequency.setValueAtTime(600, t); bp.frequency.exponentialRampToValueAtTime(2400, t + dur);
+  const g = ac.createGain(); g.gain.value = .12;
+  n.connect(bp).connect(g).connect(ac.destination); n.start(t);
+}
 function growl(power = 1) {
   const ac = sfx.ctx;
   if (!ac) return;
@@ -142,37 +162,64 @@ function growl(power = 1) {
 }
 
 // ---------- desenho 3D por quadro ----------
+const tossed = [];   // soldados arremessados (golpe do chefão, choque): giram no ar e somem
+function toss(team, x, z, power = 1) {
+  if (tossed.length > 120) tossed.shift();
+  tossed.push({ team, x, y: .2, z, vx: rand(-2.5, 2.5) * power, vy: rand(4, 7) * power, vz: rand(-1.5, 2.5) * power, rx: rand(-9, 9), rz: rand(-9, 9), born: S.time });
+}
+const tm = new THREE.Matrix4(), tq = new THREE.Quaternion(), te = new THREE.Euler(), tp = new THREE.Vector3(), ts3 = new THREE.Vector3(1, 1, 1);
+
 function drawArmies(t) {
   const r = S.red;
   redTroop.begin();
+  const march = t * 7;
   for (let c = 0; c < RED_COLS; c++) {
     const rows = rowsOf(c);
     for (let k = 0; k < rows; k++) {
       const v = r.back - k * RED_DV + (hash(k, c) - .5) * RED_DV * .5;
       if (v > 1.08) continue;
-      const x = wx(colU(c) + (hash(c, k) - .5) * .03), bob = Math.abs(Math.sin(t * 9 + c * 1.3 + k * .7)) * .05;
-      redTroop.put(x, wz(v), 1, bob);
+      const x = wx(colU(c) + (hash(c, k) - .5) * .03);
+      redTroop.put(x, wz(v), 1.05, march + hash(c, k) * 6.3);
     }
+  }
+  const blueList = [];
+  for (const o of tossed) {
+    const e = S.time - o.born;
+    if (e > 1.6) continue;
+    tp.set(o.x + o.vx * e, Math.max(0, o.y + o.vy * e - 7 * e * e), o.z + o.vz * e);
+    tq.setFromEuler(te.set(o.rx * e, 0, o.rz * e)); tm.compose(tp, tq, ts3.setScalar(1.05 * (1 - clamp01((e - 1.2) / .4))));
+    if (o.team === 'red') redTroop.putMatrix(tm); else blueList.push(tm.clone());
   }
   redTroop.end();
   blueTroop.begin();
   const OFF = [[0, 0], [.26, .12], [-.26, .14], [.06, .3], [-.2, -.2], [.22, -.22]];
   for (const un of S.units) {
-    const n = Math.min(6, Math.ceil(un.s / 1.5)), x = wx(un.u), z = wz(un.v), tint = S.time < un.ice ? ICE : NORMAL, bob = Math.abs(Math.sin(t * 14 + un.id)) * .06;
-    for (let i = 0; i < n; i++) blueTroop.put(x + OFF[i][0], z + OFF[i][1], 1, bob, tint);
+    const n = Math.min(6, Math.ceil(un.s / 1.5)), x = wx(un.u), z = wz(un.v), tint = S.time < un.ice ? ICE : NORMAL;
+    const age = S.time - un.born, leap = un.leap && age < .35 ? Math.sin(age / .35 * Math.PI) * 1.4 : 0;   // pulo saindo do capitão
+    for (let i = 0; i < n; i++) blueTroop.put(x + OFF[i][0], z + OFF[i][1], 1.05, t * 12 + un.id + i, tint, leap);
   }
+  for (const m of blueList) blueTroop.putMatrix(m, NORMAL);
   blueTroop.end();
+  tossed.splice(0, tossed.length, ...tossed.filter(o => S.time - o.born < 1.6));
 }
 
+let lastPU = 0;
 function drawCannons() {
   syncCannons(false);
-  const spots = cannonSpots();
+  const spots = cannonSpots(), vel = (S.player.u - lastPU) * 60; lastPU = S.player.u;
   cannons.forEach((c, i) => {
-    const [u, v] = spots[i], rc = clamp01(1 - (S.time - (c.userData.recoil || -9)) / .12);
+    const [u, v] = spots[i], d = c.userData, k = clamp01((S.time - (d.recoil || -9)) / .28), swing = Math.sin(k * Math.PI);
     c.position.set(wx(u), 0, wz(v) + 1.2);
-    if (c.userData.dead) { const e = S.time - c.userData.dead; c.position.y = Math.max(0, 6 * e - 9 * e * e); c.rotation.z = c.userData.spin * Math.min(e, .8); }
-    c.userData.barrels.position.z = rc * .25;
-    c.scale.setScalar(1.45 * (1 + .06 * rc));
+    c.rotation.set(0, 0, 0);
+    if (d.dead) { const e = S.time - d.dead; c.position.y = Math.max(0, 7 * e - 9 * e * e); c.rotation.z = d.spin * Math.min(e, .9); c.rotation.x = -e * 2; }
+    const walk = Math.min(1, Math.abs(vel) * 3), ph = S.time * 14 + i;
+    d.legs[0].rotation.x = Math.sin(ph) * .6 * walk; d.legs[1].rotation.x = -Math.sin(ph) * .6 * walk;
+    d.body.position.y = Math.abs(Math.sin(ph)) * .06 * walk + Math.sin(S.time * 3 + i) * .02 - swing * .05;
+    d.body.rotation.z = -vel * .05;
+    d.swordArm.rotation.x = -2.6 + swing * 2.2;   // espada no alto; desce apontando pra frente a cada lançamento
+    d.shieldArm.rotation.z = .25 + Math.sin(S.time * 2 + i) * .05;
+    d.cape.rotation.x = -.15 - Math.min(.5, Math.abs(vel) * .5) - swing * .1;
+    c.scale.setScalar(1.2 * (1 + .05 * swing));
   });
 }
 
@@ -211,9 +258,14 @@ function drawPiles(t) {
 }
 
 function drawGate(t) {
-  const u = gate.userData, f = clamp01(1 - (S.time - (u.flash || -9)) / .15);
-  u.mat.emissiveIntensity = .55 + f * .9;
-  u.shine.position.x = ((t * .45) % 1.4 - .7) * u.w;
+  S.gates.forEach((g, i) => {
+    const m = gates[i];
+    if (!m) return;
+    const u = m.userData, f = clamp01(1 - (S.time - (u.flash || -9)) / .15);
+    m.position.x = wx(g.c);
+    u.mat.emissiveIntensity = .55 + f * .9;
+    u.shine.position.x = ((t * .45) % 1.4 - .7) * u.w;
+  });
 }
 
 function drawBoss(t) {
@@ -363,7 +415,7 @@ function render(t) {
   const raw = t - (render.last || t), dt = Math.min(.05, raw); render.last = t;
   // celular sofrendo (quadros acima de ~24ms por 2s seguidos): baixa a qualidade uma vez
   if (started && raw > 0 && raw < .5) { perf.n++; perf.sum += raw; if (perf.n >= 120) { if (perf.sum / perf.n > .024) lowerQuality(); perf = { n: 0, sum: 0 }; } }
-  drawArmies(t); drawCannons(); drawBelts(); drawPiles(t); drawGate(t); drawBoss(t); updateCamera(dt);
+  waveFlags(t); drawArmies(t); drawCannons(); drawBelts(); drawPiles(t); drawGate(t); drawBoss(t); updateCamera(dt);
   for (const p of [smoke, sparks, snowBits]) p.update(dt * ts, renderer.domElement.height);
   renderer.render(scene, camera);
   ctx.clearRect(0, 0, W, H);
@@ -380,4 +432,4 @@ function resize() {
 
 startLevel(0);
 boot({ resize, update, render, onTap, onMove, onUp, onCancel: onUp, onAmbient: () => {}, onStart() { setPhase('intro'); } });
-window.__game = { S, startLevel, fast(sec) { for (let i = 0; i < sec * 30; i++) step(1 / 30); }, get button() { return button; }, set dragged(v) { dragged = v; } };
+window.__game = { info: () => renderer.info.render.calls + " calls, " + renderer.info.render.triangles + " tris", S, startLevel, camera, baseCam, baseLook, fast(sec) { for (let i = 0; i < sec * 30; i++) step(1 / 30); }, get button() { return button; }, set dragged(v) { dragged = v; } };
